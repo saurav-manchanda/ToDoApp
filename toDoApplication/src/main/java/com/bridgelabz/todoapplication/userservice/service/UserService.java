@@ -22,6 +22,7 @@ import com.bridgelabz.todoapplication.userservice.repository.Repository;
 import com.bridgelabz.todoapplication.utilservice.MailService;
 import com.bridgelabz.todoapplication.utilservice.ToDoException;
 import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
+import com.bridgelabz.todoapplication.utilservice.rabbitmq.IProducer;
 
 /**
  * @author Saurav 
@@ -36,6 +37,8 @@ public class UserService implements IUserService {
 	TokenGenerator token = new TokenGenerator();
 	@Autowired
 	MailService mailService;
+	@Autowired
+	IProducer producer;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -127,8 +130,11 @@ public class UserService implements IUserService {
 		}
 		String to=email;
 		String subject="Activation Link";
-		String body="Click on the link below to activate your acount\n" + "http://localhost:8080/activate/?" + validToken;
-		mailService.sendMail(to,subject,body);
+		String body="Click on the link below to activate your acount\n" + "http://192.168.0.21:8080/activate/?" + validToken;
+//		mailService.sendMail(to,subject,body);
+		producer.produceMsg(to, subject, body);
+		
+		
 		logger.info("mail sent successfully to activate the account");
 
 	}
@@ -146,9 +152,10 @@ public class UserService implements IUserService {
 		if (repository.getByEmail(email).isPresent()) {
 			String to=email;
 			String subject="To change your password";
-			String body = "Click on the link below to change your password\n" + "http://localhost:8080/newpassword/?"
+			String body = "Click on the link below to change your password\n" + "http://192.168.0.21:8080/newpassword/?"
 					+ validToken;
-			mailService.sendMail(to,subject,body);
+//			mailService.sendMail(to,subject,body);
+			producer.produceMsg(to, subject, body);
 			logger.info("Mail sent successfully to change the password");
 		}
 	}

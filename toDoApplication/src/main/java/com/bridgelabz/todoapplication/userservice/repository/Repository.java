@@ -13,11 +13,23 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import com.bridgelabz.todoapplication.userservice.model.User;
 
 /**
- * @author Saurav:
+ * @author Saurav
+ * <p>
  * Interface that extends MongoRepository and we can use all the methods of Mongo repository plus can write extra custom methods
+ * </p>
  */
 @org.springframework.stereotype.Repository
 public interface Repository extends MongoRepository<User, String> {
+	/**
+	 * @param email
+	 * @return Optional
+	 * 
+	 *         <p>
+	 *         This method return User object corresponding to Email. If User object
+	 *         is present in Data Base it will return the Same Object Otherwise
+	 *         Optional Class Reference for null information.
+	 *         </p>
+	 */
 	public Optional<User> getByEmail(String email);
 	
 }

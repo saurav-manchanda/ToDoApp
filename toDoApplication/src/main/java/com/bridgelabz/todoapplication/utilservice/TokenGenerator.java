@@ -1,5 +1,5 @@
 /********************************************************************************* *
- * Purpose: To do Login Registration with the help of MONGODB repository. Creating a Token Generator Class that generates the token.
+ * Purpose: To make a TokenGenerator Class. Creating a Token Generator Class that generates the token.
  * 
  * @author Saurav Manchanda
  * @version 1.0
@@ -20,8 +20,10 @@ import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 /**
- * @author Saurav:
- * Class TokenGenerator that has a token gerator
+ * @author Saurav
+ * <p>
+ * Class TokenGenerator that has a token generator method.
+ * </p>
  */
 @Service
 public class TokenGenerator {

@@ -7,19 +7,16 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.userservice.model;
 
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import io.swagger.annotations.ApiModelProperty;
 
 /**
- * 
- * @author Saurav 
- * <br>
- * <p>
- * Class User with suitable fields and setters and getters.
- * </p>
+ * @author Saurav <br>
+ *         <p>
+ *         Class User with suitable fields and setters and getters.
+ *         </p>
  */
 @Document
 public class User {
@@ -28,16 +25,21 @@ public class User {
 	private String userName;
 	private String email;
 	private String password;
-	@ApiModelProperty(hidden=true)
-	private String status="false";
+	@ApiModelProperty(hidden = true)
+	private String status = "false";
+
 	public String getStatus() {
 		return status;
 	}
+
+	/**
+	 * Method to set the status
+	 * 
+	 * @param status
+	 */
 	public void setStatus(String status) {
 		this.status = status;
 	}
-
-	
 
 	/**
 	 * Constructor

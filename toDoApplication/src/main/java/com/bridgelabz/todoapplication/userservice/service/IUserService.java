@@ -1,3 +1,10 @@
+/********************************************************************************* *
+ * Purpose: To create an implementation to GoogleKeep(ToDoApplication).
+ * Creating a User Service Implementation  
+ * @author Saurav Manchanda
+ * @version 1.0
+ * @since 17/07/2018
+ *********************************************************************************/
 package com.bridgelabz.todoapplication.userservice.service;
 
 import javax.mail.MessagingException;
@@ -5,6 +12,12 @@ import javax.mail.MessagingException;
 import com.bridgelabz.todoapplication.userservice.model.User;
 import com.bridgelabz.todoapplication.utilservice.ToDoException;
 
+/**
+ * @author Saurav
+ *<p>
+ *IUserService 
+ *</p>
+ */
 public interface IUserService {
 	public void updateUser(User user) throws ToDoException, MessagingException;
 
