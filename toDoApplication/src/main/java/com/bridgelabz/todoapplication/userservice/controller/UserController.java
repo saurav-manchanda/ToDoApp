@@ -10,6 +10,7 @@ package com.bridgelabz.todoapplication.userservice.controller;
 
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +23,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-
 import com.bridgelabz.todoapplication.userservice.model.User;
+import com.bridgelabz.todoapplication.userservice.model.UserDTO;
 import com.bridgelabz.todoapplication.userservice.service.IUserService;
 import com.bridgelabz.todoapplication.utilservice.ResponseDTO;
 import com.bridgelabz.todoapplication.utilservice.ToDoException;
 import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
+import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
 
 /**
  * @author Saurav
@@ -38,13 +40,15 @@ import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
  */
 @RestController
 public class UserController {
-	public static final Logger logger=LoggerFactory.getLogger(UserController.class);
-	String REQ_ID="IN_User";
-	String RES_ID="OUT_User";
+	public static final Logger logger = LoggerFactory.getLogger(UserController.class);
+	String REQ_ID = "IN_User";
+	String RES_ID = "OUT_User";
 	@Autowired
 	IUserService userService;
-
-	TokenGenerator token = new TokenGenerator();
+	@Autowired
+	ObjectMapping objectMapping;
+	@Autowired
+	TokenGenerator token;
 
 	/**
 	 * @param user
@@ -56,30 +60,24 @@ public class UserController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/login", method = RequestMethod.POST)
-	public ResponseEntity<ResponseDTO> logIn(@RequestParam("email") String email, @RequestParam("password") String password)
-			 {
+	public ResponseEntity<ResponseDTO> logIn(@RequestBody UserDTO userDto, HttpServletResponse resp)
+			throws ToDoException {
 		logger.info(REQ_ID);
 		logger.info("User login");
-		User user = userService.getUserForLogin(email, password);
-		try {
-			if (userService.validateUser(user) == true) {
-				logger.info(RES_ID);
-				logger.info("User Successfully logger in");
-				return new ResponseEntity("Welcome to the Application.You are successfully logged in ", HttpStatus.OK);
-			}
-		} catch (ToDoException e) {
-			ResponseDTO response=new ResponseDTO();
-			response.setMessage(e.getMessage());
-			response.setStatus(-1);
-			return new ResponseEntity<ResponseDTO>(response, HttpStatus.BAD_REQUEST);
+		User user = objectMapping.map(userDto, User.class);
+		if (userService.validateUser(user, resp) == true) {
+			logger.info(RES_ID);
+			logger.info("User Successfully logger in");
+			return new ResponseEntity(new ResponseDTO("Welcome to the Application.You are successfully logged in ", 200), HttpStatus.OK);
 		}
-		return new ResponseEntity("User Or Password Incorrect. Therefore no token generated. " + user.getUserName(),
+		return new ResponseEntity(new ResponseDTO("User Or Password Incorrect. Therefore no token generated. "+ user.getUserName(), 400) ,
 				HttpStatus.CONFLICT);
 	}
 
 	/**
 	 * @param user
 	 * @return
+	 * @throws ToDoException
 	 * @throws MessagingException
 	 *             <p>
 	 *             This Method to register a new user into the application on
@@ -88,28 +86,15 @@ public class UserController {
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@RequestMapping(value = "/signup", method = RequestMethod.POST)
-	public ResponseEntity<ResponseDTO> signUp(@RequestBody User user)  {
+	public ResponseEntity<ResponseDTO> signUp(@RequestBody UserDTO userDto) throws ToDoException, MessagingException {
 		logger.info(REQ_ID);
 		logger.info("User Registration");
-		try {
-			userService.checkEmail(user);
-		} catch (ToDoException e) {
-			ResponseDTO response=new ResponseDTO();
-			response.setMessage(e.getMessage());
-			response.setStatus(-2);
-			return new ResponseEntity<ResponseDTO>(response, HttpStatus.BAD_REQUEST);
-		}
-		try {
-			userService.updateUser(user);
-		} catch (ToDoException | MessagingException e) {
-			ResponseDTO response=new ResponseDTO();
-			response.setMessage(e.getMessage());
-			response.setStatus(-3);
-			return new ResponseEntity<ResponseDTO>(response, HttpStatus.BAD_REQUEST);
-		}
+		User user = objectMapping.map(userDto, User.class);
+		userService.checkEmail(user);
+		userService.updateUser(user);
 		logger.info(RES_ID);
 		logger.info("User Successfully registered");
-		return new ResponseEntity("User successfully registered " + user.getUserName(), HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("User successfully registered " + user.getUserName(), 200), HttpStatus.OK);
 	}
 
 	/**
@@ -124,26 +109,20 @@ public class UserController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/forgotpassword", method = RequestMethod.POST)
-	public ResponseEntity<ResponseDTO> forgotPassword(@RequestParam("email") String email) {
+	public ResponseEntity<ResponseDTO> forgotPassword(@RequestParam("email") String email)
+			throws ToDoException, MessagingException {
 		logger.info(REQ_ID);
 		logger.info("Forgot Password Entered");
 		User user = new User();
 		user.setEmail(email);
-		try {
-			if (userService.isEmailPresent(user) == true) {
-				String validToken = userService.tokengenerator(user);
-				userService.sendMail(user, validToken);
-				logger.info(RES_ID);
-				logger.info("Email sent with new Password");
-				return new ResponseEntity("Email send with a link to set new password ", HttpStatus.OK);
-			}
-		} catch (ToDoException | MessagingException e) {
-			ResponseDTO response=new ResponseDTO();
-			response.setMessage(e.getMessage());
-			response.setStatus(-4);
-			return new ResponseEntity<ResponseDTO>(response, HttpStatus.BAD_REQUEST);
+		if (userService.isEmailPresent(user) == true) {
+			String validToken = userService.tokengenerator(user);
+			userService.sendMail(user, validToken);
+			logger.info(RES_ID);
+			logger.info("Email sent with new Password");
+			return new ResponseEntity(new ResponseDTO("Email send with a link to set new password ", 200), HttpStatus.OK);
 		}
-		return new ResponseEntity("Invalid user Name", HttpStatus.CONFLICT);
+		return new ResponseEntity(new ResponseDTO("Invalid user Name", 400), HttpStatus.CONFLICT);
 	}
 
 	/**
@@ -182,19 +161,12 @@ public class UserController {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@RequestMapping(value = "/newpassword", method = RequestMethod.POST)
 	public ResponseEntity<ResponseDTO> changePassword(@RequestParam("password") String password,
-			@RequestParam("newPassword") String newPassword,@RequestParam("Token") String token) {
+			@RequestParam("newPassword") String newPassword, @RequestParam("Token") String token) throws ToDoException {
 		logger.info(REQ_ID);
 		logger.info("New Password Module entered");
-		try {
-			userService.resetPassword(token, password, newPassword);
-		} catch (ToDoException e) {
-			ResponseDTO response=new ResponseDTO();
-			response.setMessage(e.getMessage());
-			response.setStatus(-5);
-			return new ResponseEntity<ResponseDTO>(response, HttpStatus.BAD_REQUEST);
-		}
+		userService.resetPassword(token, password, newPassword);
 		logger.info(RES_ID);
 		logger.info("Password changed Successfully");
-		return new ResponseEntity("Password is changed successfully.", HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("Password is changed successfully.", 200), HttpStatus.OK);
 	}
 }

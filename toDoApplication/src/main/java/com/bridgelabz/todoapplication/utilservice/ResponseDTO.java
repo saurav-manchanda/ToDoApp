@@ -21,6 +21,11 @@ public class ResponseDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private int status;
 	private String message;
+public ResponseDTO(String message, int status) {
+		super();
+		this.status = status;
+		this.message = message;
+	}
 /**
  * Method to get the status of the response
  * @return
@@ -28,6 +33,9 @@ public class ResponseDTO implements Serializable {
 	public int getStatus() {
 		return status;
 	}
+public ResponseDTO() {
+	super();
+}
 /**
  * Method to set the status of the response
  * @param status

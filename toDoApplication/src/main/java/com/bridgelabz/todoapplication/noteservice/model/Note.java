@@ -7,10 +7,12 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.noteservice.model;
 
+import java.util.List;
+
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import io.swagger.annotations.ApiModelProperty;
 
 /**
  * @author Saurav
@@ -25,28 +27,83 @@ public class Note {
 	private String noteId;
 	private String title;
 	private String description;
-	@ApiModelProperty(hidden = true)
 	private String createdDate;
-	@ApiModelProperty(hidden = true)
 	private String lastUpdatedDate;
-	@ApiModelProperty(hidden = true)
 	private String userId;
-	@ApiModelProperty(hidden = true)
-	private String colour="white";
-	@ApiModelProperty(hidden = true)
-	private boolean trashStatus=false;
+	private String colour = "white";
+	private String reminder;
+	private boolean trashStatus = false;
+	private boolean pinnedStatus = false;
+	private boolean archieveStatus=false;
+	private List<Label> listOfLabels;
+	public boolean isArchieveStatus() {
+		return archieveStatus;
+	}
+
+	public List<Label> getListOfLabels() {
+		return listOfLabels;
+	}
+
+	public void setListOfLabels(List<Label> listOfLabels) {
+		this.listOfLabels = listOfLabels;
+	}
+
+	public void setArchieveStatus(boolean archieveStatus) {
+		this.archieveStatus = archieveStatus;
+	}
+
+
+	/**
+	 * Method is to pin the status
+	 * 
+	 * @return
+	 */
+	public boolean isPinnedStatus() {
+		return pinnedStatus;
+	}
+
+
+	/**
+	 * Method is to set Pinned Status
+	 * 
+	 * @param pinnedStatus
+	 */
+	public void setPinnedStatus(boolean pinnedStatus) {
+		this.pinnedStatus = pinnedStatus;
+	}
+
+	/**
+	 * Method to get the Trash Status
+	 * 
+	 * @return
+	 */
 	public boolean isTrashStatus() {
 		return trashStatus;
 	}
 
+	/**
+	 * Method to set the Trash Status
+	 * 
+	 * @param trashStatus
+	 */
 	public void setTrashStatus(boolean trashStatus) {
 		this.trashStatus = trashStatus;
 	}
 
+	/**
+	 * Method to get the color
+	 * 
+	 * @return
+	 */
 	public String getColour() {
 		return colour;
 	}
 
+	/**
+	 * Method to set the color
+	 * 
+	 * @param colour
+	 */
 	public void setColour(String colour) {
 		this.colour = colour;
 	}
@@ -157,6 +214,14 @@ public class Note {
 	 */
 	public void setNoteId(String noteId) {
 		this.noteId = noteId;
+	}
+
+	public String getReminder() {
+		return reminder;
+	}
+
+	public void setReminder(String reminder) {
+		this.reminder = reminder;
 	}
 
 }

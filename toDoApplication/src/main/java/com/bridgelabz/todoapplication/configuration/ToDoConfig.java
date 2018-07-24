@@ -8,10 +8,13 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.configuration;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
 
 /**
  * @author Saurav
@@ -32,5 +35,13 @@ public class ToDoConfig {
 	public PasswordEncoder passwordEncoder() {
 		PasswordEncoder encoder = new BCryptPasswordEncoder();
 		return encoder;
+	}
+	@Bean
+	public ModelMapper modelMapper() {
+	    return new ModelMapper();
+	}
+	@Bean
+	public ObjectMapping objectmapping() {
+		return new ObjectMapping();
 	}
 }
