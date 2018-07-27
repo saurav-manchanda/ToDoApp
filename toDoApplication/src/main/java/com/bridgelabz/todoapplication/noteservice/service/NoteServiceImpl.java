@@ -30,6 +30,7 @@ import com.bridgelabz.todoapplication.utilservice.ToDoException;
 import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
 import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
 import com.bridgelabz.todoapplication.utilservice.Precondition.PreCondition;
+import com.bridgelabz.todoapplication.utilservice.RedisRepository.IRedisRepository;
 import com.bridgelabz.todoapplication.utilservice.rabbitmq.IProducer;
 
 /**
@@ -53,6 +54,8 @@ public class NoteServiceImpl implements INoteService {
 	ObjectMapping objectMapping;
 	@Autowired
 	IProducer producer;
+	@Autowired
+	IRedisRepository redisRepository;
 
 	@Override
 	/**
@@ -66,6 +69,9 @@ public class NoteServiceImpl implements INoteService {
 		if (!userRepository.getByEmail(email).isPresent()) {
 			PreCondition.commonMethod("Invalid User");
 		}
+		if(!email.equals(redisRepository.getToken(email))) {
+			PreCondition.commonMethod("Email Match not Found");
+		}
 		Optional<User> user = userRepository.getByEmail(email);
 		note.setUserId(user.get().getId());
 		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
@@ -73,6 +79,15 @@ public class NoteServiceImpl implements INoteService {
 		note.setCreatedDate(createdDate);
 		note.setLastUpdatedDate(createdDate);
 		noteRepository.save(note);
+		for (int i = 0; i < note.getLabels().size(); i++) {
+			if (!note.getLabels().get(i).getLabelName().equals("")) {
+				Label label = new Label();
+				label.setLabelName(note.getLabels().get(i).getLabelName());
+				label.setNoteId(note.getNoteId());
+				label.setUserId(user.get().getId());
+				labelRepository.save(label);
+			}
+		}
 	}
 
 	/**
@@ -248,7 +263,9 @@ public class NoteServiceImpl implements INoteService {
 			noteRepository.save(note);
 		}
 	}
-
+/**
+ * Method for archiving the note. The archived note will come at the end of the list of notes 
+ */
 	@Override
 	public void archieveNote(String noteId, String token1) throws ToDoException {
 		PreCondition.checkNotNull(noteId, "Note id cant be null");
@@ -268,7 +285,9 @@ public class NoteServiceImpl implements INoteService {
 			noteRepository.save(note);
 		}
 	}
-
+/**
+ * This method is for creating the Label
+ */
 	@Override
 	public void createLabel(Label label, String token1) throws ToDoException {
 		PreCondition.checkNotNull(label.getLabelName(), "Label name cannot be null");
@@ -290,7 +309,9 @@ public class NoteServiceImpl implements INoteService {
 		label.setUserId(user.get().getId());
 		labelRepository.save(label);
 	}
-
+/**
+ * The method is for updating the label
+ */
 	@Override
 	public void updateLabel(String labelId, String labelName, String token1) throws ToDoException {
 		PreCondition.checkNotNull(labelId, "Label id cannot be null");
@@ -307,20 +328,37 @@ public class NoteServiceImpl implements INoteService {
 		label.setLabelName(labelName);
 		labelRepository.save(label);
 	}
-
+/**
+ * The method is for deleting the Label 
+ */
 	@Override
-	public void deleteLabel(String labelId, String token1) throws ToDoException {
-		PreCondition.checkNotNull(labelId, "Label Id cannot be Null");
-		PreCondition.checkNotEmptyString(labelId, "Label Id cannot be an empty string");
+	public void deleteLabel(String labelName, String token1) throws ToDoException {
+		PreCondition.checkNotNull(labelName, "Label Id cannot be Null");
+		PreCondition.checkNotEmptyString(labelName, "Label Id cannot be an empty string");
 		PreCondition.checkNotNull(token1, "Token cannot be Null");
 		PreCondition.checkNotEmptyString(token1, "token cannot be an Empty String");
 		String email = token.parseJWT(token1);
 		if (!userRepository.getByEmail(email).isPresent()) {
 			PreCondition.commonMethod("Invalid User");
 		}
-		labelRepository.deleteById(labelId);
+		for(int i=0;i<labelRepository.findByLabelName(labelName).size();i++) {
+		labelRepository.deleteById(labelRepository.findByLabelName(labelName).get(i).getLableId());
+		}
+		List<Note> notes = noteRepository.findAll();
+		for (int i = 0; i < notes.size(); i++) {
+			List<Label> labels = notes.get(i).getLabels();
+			for (Label label : labels) {
+				if (label.getLabelName().equals(labelName)) {
+					labels.remove(label);
+					notes.get(i).setLabels(labels);
+					noteRepository.save(notes.get(i));
+				}
+			}
+		}
 	}
-
+/**
+ * The method is for displaying the labels
+ */
 	@Override
 	public List<Label> displayLabels(String token1) throws ToDoException {
 		List<Label> list = new ArrayList<>();
@@ -334,7 +372,9 @@ public class NoteServiceImpl implements INoteService {
 		list = labelRepository.findLabelsByUserId(user.get().getId());
 		return list;
 	}
-
+/**
+ * The method is for setting the reminders
+ */
 	@Override
 	public void setReminder(String noteId, String remindTime, String token1) throws ToDoException, ParseException {
 		PreCondition.checkNotNull(noteId, "Note id cant be null");
@@ -354,7 +394,7 @@ public class NoteServiceImpl implements INoteService {
 		long timeDifference = reminder.getTime() - new Date().getTime();
 		Timer timer = new Timer();
 		timer.schedule(new TimerTask() {
-		
+
 			@Override
 			public void run() {
 				String to = email;
@@ -365,5 +405,43 @@ public class NoteServiceImpl implements INoteService {
 		}, timeDifference);
 		noteRepository.save(note);
 	}
-
+/**
+ * The method is for search notes by Label
+ */
+	@Override
+	public List<Note> searchNotesByLabel(String labelName, String token1) throws ToDoException {
+		PreCondition.checkNotNull(labelName, "Label Name cannot be Null");
+		PreCondition.checkNotEmptyString(labelName, "Label Name cannot be an empty string");
+		PreCondition.checkNotNull(token1, "Token cannot be Null");
+		PreCondition.checkNotEmptyString(token1, "token cannot be an Empty String");
+		List<Note> listOfNotes = new ArrayList<>();
+		List<Label> labelList = labelRepository.findByLabelName(labelName);
+		for (Label label : labelList) {
+			listOfNotes.add(noteRepository.findById(label.getNoteId()).get());
+		}
+		return listOfNotes;
+	}
+/**
+ * The method is for deleting the Label from The note
+ */
+	@Override
+	public void deleteLabelFromNote(String noteId,String labelName, String token1) throws ToDoException {
+		PreCondition.checkNotNull(labelName, "Label Id cannot be Null");
+		PreCondition.checkNotEmptyString(labelName, "Label Id cannot be an empty string");
+		PreCondition.checkNotNull(token1, "Token cannot be Null");
+		PreCondition.checkNotEmptyString(token1, "token cannot be an Empty String");
+		String email = token.parseJWT(token1);
+		if (!userRepository.getByEmail(email).isPresent()) {
+			PreCondition.commonMethod("Invalid User");
+		}
+		Note note = noteRepository.getByNoteId(noteId).get();
+		List<Label> labels = note.getLabels();
+		for (Label label : labels) {
+			if (label.getLabelName().equals(labelName)) {
+				labels.remove(label);
+				note.setLabels(labels);
+				noteRepository.save(note);
+			}
+		}	
+	}
 }

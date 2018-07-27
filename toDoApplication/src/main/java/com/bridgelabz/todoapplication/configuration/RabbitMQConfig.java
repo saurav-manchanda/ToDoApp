@@ -1,5 +1,11 @@
+/********************************************************************************* *
+ * Purpose: To create an implementation to GoogleKeep(ToDoApplication).
+ * Configuring the Rabbit MQ
+ * @author Saurav Manchanda
+ * @version 1.0
+ * @since 22/07/2018
+ *********************************************************************************/
 package com.bridgelabz.todoapplication.configuration;
-
 
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.Binding;
@@ -13,6 +19,14 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+/**
+ * @author Saurav
+ *         <p>
+ *         Thos class is for configuring the Rabbit MQ in the application. We
+ *         are using the same for sending an email in our respective application
+ *         </p>
+ */
 @Configuration
 public class RabbitMQConfig {
 	@Value("${saurav.rabbitmq.queue}")

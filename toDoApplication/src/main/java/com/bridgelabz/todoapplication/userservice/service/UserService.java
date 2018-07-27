@@ -24,6 +24,7 @@ import com.bridgelabz.todoapplication.utilservice.MailService;
 import com.bridgelabz.todoapplication.utilservice.ToDoException;
 import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
 import com.bridgelabz.todoapplication.utilservice.Precondition.PreCondition;
+import com.bridgelabz.todoapplication.utilservice.RedisRepository.IRedisRepository;
 import com.bridgelabz.todoapplication.utilservice.rabbitmq.IProducer;
 
 /**
@@ -37,14 +38,16 @@ import com.bridgelabz.todoapplication.utilservice.rabbitmq.IProducer;
 public class UserService implements IUserService {
 	@Autowired
 	Repository repository;
-	TokenGenerator token = new TokenGenerator();
+	@Autowired
+	TokenGenerator token;
 	@Autowired
 	MailService mailService;
 	@Autowired
 	IProducer producer;
-
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+	@Autowired
+	IRedisRepository redisRepository;
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
 	/**
@@ -108,6 +111,7 @@ public class UserService implements IUserService {
 		PreCondition.checkNotNull(user.getPassword(), "Password cannot be Null");
 		PreCondition.checkNotNull(user.getUserName(), "Username cannot be Null");
 		String validToken = tokengenerator(user);
+		redisRepository.setToken(validToken);
 		sendActivationLink(validToken, user);
 		user.setPassword(passwordEncoder.encode(user.getPassword()));
 		repository.save(user);
@@ -209,7 +213,9 @@ public class UserService implements IUserService {
 			PreCondition.commonMethod("password and comfirm password donot match");
 		}
 	}
-
+/**
+ * The method is for checking whether the email of the user is present or not in the database
+ */
 	@Override
 	public boolean isEmailPresent(User user) throws ToDoException {
 		String email = user.getEmail();

@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
 import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
 
@@ -23,6 +24,7 @@ import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
  *         </p>
  */
 @Configuration
+@Component
 public class ToDoConfig {
 	/**
 	 * @return encoder
@@ -36,12 +38,35 @@ public class ToDoConfig {
 		PasswordEncoder encoder = new BCryptPasswordEncoder();
 		return encoder;
 	}
+	/**
+	 * This method is for creating the bean for Model mapper
+	 * @return
+	 */
 	@Bean
 	public ModelMapper modelMapper() {
 	    return new ModelMapper();
 	}
+	/**
+	 * This method is creating a bean for our class ObjectMapping
+	 * @return
+	 */
 	@Bean
 	public ObjectMapping objectmapping() {
 		return new ObjectMapping();
 	}
+//	@Bean
+//	JedisConnectionFactory jedisConnectionFactory() {
+//		JedisConnectionFactory jedisConFactory = new JedisConnectionFactory();
+//		return jedisConFactory;
+//	}
+//
+//	/**
+//	 * @return redis template
+//	 */
+//	@Bean
+//	public RedisTemplate<String, User> redisTemplate() {
+//		RedisTemplate<String, User> redisTemplate = new RedisTemplate<String, User>();
+//		redisTemplate.setConnectionFactory(jedisConnectionFactory());
+//		return redisTemplate;
+//	}
 }

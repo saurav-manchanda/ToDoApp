@@ -7,6 +7,7 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.noteservice.model;
 
+import java.util.List;
 
 /**
  * @author Saurav
@@ -17,6 +18,13 @@ package com.bridgelabz.todoapplication.noteservice.model;
 public class NoteDTO {
 	private String title;
 	private String description;
+	private List<Label> labels;
+	public List<Label> getLabels() {
+		return labels;
+	}
+	public void setLabels(List<Label> labels) {
+		this.labels = labels;
+	}
 	/**
 	 * Method to get the Title of the Note
 	 * @return

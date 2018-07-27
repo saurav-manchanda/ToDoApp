@@ -40,6 +40,13 @@ public class SwaggerConfig {
 				.paths(PathSelectors.any()).build();
 	}
 
+	/**
+	 * @return security configuration
+	 *         <p>
+	 *         This is for creating a bean for authorization so that we can pass our
+	 *         key in the token head
+	 *         </p>
+	 */
 	@Bean
 	SecurityConfiguration security() {
 		return new SecurityConfiguration(null, null, null, null, "Token", ApiKeyVehicle.HEADER, "Authorization", ",");

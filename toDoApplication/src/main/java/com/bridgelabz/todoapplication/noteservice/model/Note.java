@@ -9,10 +9,8 @@ package com.bridgelabz.todoapplication.noteservice.model;
 
 import java.util.List;
 
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
 
 /**
  * @author Saurav
@@ -28,30 +26,50 @@ public class Note {
 	private String title;
 	private String description;
 	private String createdDate;
-	private String lastUpdatedDate;
+	private String lastUpdatedDate;  
 	private String userId;
 	private String colour = "white";
 	private String reminder;
 	private boolean trashStatus = false;
 	private boolean pinnedStatus = false;
-	private boolean archieveStatus=false;
-	private List<Label> listOfLabels;
+	private boolean archieveStatus = false;
+	private List<Label> labels;
+
+	/**
+	 * Method to find the archieve Status
+	 * 
+	 * @return the archieveStatus
+	 */
 	public boolean isArchieveStatus() {
 		return archieveStatus;
 	}
 
-	public List<Label> getListOfLabels() {
-		return listOfLabels;
+	/**
+	 * Method to get the List of Labels
+	 * 
+	 * @return listofLabels
+	 */
+	public List<Label> getLabels() {
+		return labels;
 	}
 
-	public void setListOfLabels(List<Label> listOfLabels) {
-		this.listOfLabels = listOfLabels;
+	/**
+	 * Method to set the listOfLabels
+	 * 
+	 * @param listOfLabels
+	 */
+	public void setLabels(List<Label> labels) {
+		this.labels = labels;
 	}
 
+	/**
+	 * Method to set the archieve status
+	 * 
+	 * @param archieveStatus
+	 */
 	public void setArchieveStatus(boolean archieveStatus) {
 		this.archieveStatus = archieveStatus;
 	}
-
 
 	/**
 	 * Method is to pin the status
@@ -61,7 +79,6 @@ public class Note {
 	public boolean isPinnedStatus() {
 		return pinnedStatus;
 	}
-
 
 	/**
 	 * Method is to set Pinned Status
@@ -215,13 +232,18 @@ public class Note {
 	public void setNoteId(String noteId) {
 		this.noteId = noteId;
 	}
-
+/**
+ * Method to get the reminder
+ * @return
+ */
 	public String getReminder() {
 		return reminder;
 	}
-
+/**
+ * Method to set the reminder
+ * @param reminder
+ */
 	public void setReminder(String reminder) {
 		this.reminder = reminder;
 	}
-
 }
