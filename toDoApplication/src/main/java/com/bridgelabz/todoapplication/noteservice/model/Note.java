@@ -10,7 +10,7 @@ package com.bridgelabz.todoapplication.noteservice.model;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.elasticsearch.annotations.Document;
 
 /**
  * @author Saurav
@@ -19,7 +19,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  *         corresponding setters and getters
  *         </p>
  */
-@Document
+@Document(indexName="test",type="note")
 public class Note {
 	@Id
 	private String noteId;

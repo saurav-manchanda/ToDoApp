@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -65,10 +66,11 @@ public class UserController {
 		logger.info(REQ_ID);
 		logger.info("User login");
 		User user = objectMapping.map(userDto, User.class);
-		if (userService.validateUser(user, resp) == true) {
+		String validToken = userService.tokengenerator(user);
+		if (userService.validateUser(user, resp, validToken)) {
 			logger.info(RES_ID);
 			logger.info("User Successfully logger in");
-			return new ResponseEntity(new ResponseDTO("Welcome to the Application.You are successfully logged in ", 200), HttpStatus.OK);
+			return new ResponseEntity(new ResponseDTO("Welcome to the Application.You are successfully logged in. Token generated is: "+validToken, 200), HttpStatus.OK);
 		}
 		return new ResponseEntity(new ResponseDTO("User Or Password Incorrect. Therefore no token generated. "+ user.getUserName(), 400) ,
 				HttpStatus.CONFLICT);
@@ -91,10 +93,11 @@ public class UserController {
 		logger.info("User Registration");
 		User user = objectMapping.map(userDto, User.class);
 		userService.checkEmail(user);
-		userService.updateUser(user);
+		String validToken = userService.tokengenerator(user);
+		userService.updateUser(user,validToken);
 		logger.info(RES_ID);
 		logger.info("User Successfully registered");
-		return new ResponseEntity(new ResponseDTO("User successfully registered " + user.getUserName(), 200), HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("User successfully registered. The token generated is: "+validToken, 200), HttpStatus.OK);
 	}
 
 	/**
@@ -133,11 +136,11 @@ public class UserController {
 	 *         sign in
 	 *         </p>
 	 */
-	@RequestMapping(value = "/activate", method = RequestMethod.GET)
-	public ResponseEntity<String> activateaccount(HttpServletRequest request) {
+	@RequestMapping(value = "/activate/{token}", method = RequestMethod.GET)
+	public ResponseEntity<String> activateaccount(HttpServletRequest request,@PathVariable String token) {
 		logger.info(REQ_ID);
 		logger.info("Activation started");
-		String token = request.getQueryString();
+//		String token = request.getQueryString();
 		if (userService.activate(token)) {
 			String messege = "Account activated successfully";
 			logger.info(RES_ID);

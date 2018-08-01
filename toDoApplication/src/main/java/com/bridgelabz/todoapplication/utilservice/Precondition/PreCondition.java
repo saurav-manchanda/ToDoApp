@@ -1,16 +1,10 @@
 package com.bridgelabz.todoapplication.utilservice.Precondition;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
-import com.bridgelabz.todoapplication.noteservice.repository.INoteRepository;
-import com.bridgelabz.todoapplication.userservice.repository.Repository;
 import com.bridgelabz.todoapplication.utilservice.ToDoException;
 
 public class PreCondition {
-	@Autowired
-	static INoteRepository noteRepository;
-	@Autowired
-	static Repository userRepository;
+	
 	/**
 	 * @param reference
 	 * @param errorMessage

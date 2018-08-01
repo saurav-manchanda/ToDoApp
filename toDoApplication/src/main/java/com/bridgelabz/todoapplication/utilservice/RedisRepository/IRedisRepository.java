@@ -32,23 +32,23 @@ public interface IRedisRepository {
 	/**
 	 * <p>
 	 * The method is for getting the token by passing the email from the respecting
-	 * redis repository. The email is acting as the respective key for getting the
+	 * redis repository. The userID is acting as the respective key for getting the
 	 * token.
 	 * </p>
 	 * 
 	 * @param email
 	 * @return Token
 	 */
-	String getToken(String email);
+	String getToken(String userId);
 
 	/**
 	 * <p>
 	 * The method is for deleting the token from the respective redis repository.The
-	 * email is acting as the respective key for getting the token
+	 * userId is acting as the respective key for getting the token
 	 * </p>
 	 * 
 	 * @param email
 	 */
-	void deleteToken(String email);
+	void deleteToken(String userId);
 
 }

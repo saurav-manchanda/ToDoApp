@@ -37,27 +37,45 @@ public class RabbitMQConfig {
 
 	@Value("${saurav.rabbitmq.routingkey}")
 	private String routingkey;
-
+/**
+ * This method is for creating the bean for Queue
+ * @return
+ */
 	@Bean
 	Queue queue() {
 		return new Queue(queueName, false);
 	}
-
+/**
+ * This method is for creating the bean for Direct Exchange
+ * @return
+ */
 	@Bean
 	DirectExchange exchange() {
 		return new DirectExchange(exchange);
 	}
-
+/**
+ * This method is for creating the bean for Binding
+ * @param queue
+ * @param exchange
+ * @return
+ */
 	@Bean
 	Binding binding(Queue queue, DirectExchange exchange) {
 		return BindingBuilder.bind(queue).to(exchange).with(routingkey);
 	}
-
+/**
+ * This method is for creating the bean for MessageConverter
+ * @return
+ */
 	@Bean
 	public MessageConverter jsonMessageConverter() {
 		return new Jackson2JsonMessageConverter();
 	}
-
+/**
+ * This method is for creating a bean for Amqp Template
+ * @param connectionFactory
+ * @return
+ */
 	@Bean
 	public AmqpTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
 		final RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);

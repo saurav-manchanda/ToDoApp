@@ -23,6 +23,5 @@ public class ProducerImpl implements IProducer{
 		email.setSubject(subject);
 		email.setTo(to);
 		amqpTemplate.convertAndSend(exchange, routingKey, email);
-//		System.out.println("Send msg = " + email);
 	}
 }

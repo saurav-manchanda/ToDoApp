@@ -8,7 +8,7 @@
 package com.bridgelabz.todoapplication.noteservice.model;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.elasticsearch.annotations.Document;
 
 import io.swagger.annotations.ApiModelProperty;
 
@@ -20,7 +20,7 @@ import io.swagger.annotations.ApiModelProperty;
  *         getters.
  *         </p>
  */
-@Document
+@Document(indexName="test1",type="label")
 public class Label {
 	@Id
 	@ApiModelProperty(hidden = true)

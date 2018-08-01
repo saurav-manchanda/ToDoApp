@@ -17,11 +17,9 @@ public class ConsumerImpl implements IConsumer {
 	@Override
 	@RabbitListener(queues = "${saurav.rabbitmq.queue}")
 	public void recievedMessage(Mail email) throws MessagingException {
-		System.out.println("Recieved Message: " + email);
 		String to=email.getTo();
 		String subject=email.getSubject();
 		String body=email.getBody();
-//		emailService.sendEmail(email);
 		mailService.sendMail(to,subject,body);
 	}
 

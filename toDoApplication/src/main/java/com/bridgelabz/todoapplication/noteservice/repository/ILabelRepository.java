@@ -32,5 +32,12 @@ public interface ILabelRepository extends MongoRepository<Label, String> {
 	 *         </p>
 	 */
 	public List<Label> findLabelsByUserId(String userId);
+	/**
+	 * <p>
+	 * This method is for finding the Labels by their respective LabelName
+	 * </p>
+	 * @param labelName
+	 * @return
+	 */
 	public List<Label> findByLabelName(String labelName);
 }

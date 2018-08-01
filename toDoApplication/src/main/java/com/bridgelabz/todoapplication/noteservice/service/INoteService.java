@@ -29,11 +29,11 @@ public interface INoteService {
 	 * </p>
 	 * 
 	 * @param note
-	 * @param token
+	 * @param userID
 	 * @throws ToDoException
 	 * 
 	 */
-	void createNote(NoteDTO noteDto, String token) throws ToDoException;
+	String createNote(NoteDTO noteDto, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -41,13 +41,13 @@ public interface INoteService {
 	 * </p>
 	 * 
 	 * @param noteId
-	 * @param token
+	 * @param userId
 	 * @throws ToDoException
 	 *             <p>
 	 *             This method is for deleting a Note in the application
 	 *             </p>
 	 */
-	void deleteNote(String noteId, String token) throws ToDoException;
+	String deleteNote(String noteId, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -60,7 +60,7 @@ public interface INoteService {
 	 * @param token
 	 * @throws ToDoException
 	 */
-	void updateNote(String noteId, String title, String description, String token) throws ToDoException;
+	String updateNote(String noteId, String title, String description, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -72,7 +72,7 @@ public interface INoteService {
 	 * @throws ToDoException
 	 * 
 	 */
-	List<Note> displayAllNotes(String token) throws ToDoException;
+	List<Note> displayAllNotes(String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -85,7 +85,7 @@ public interface INoteService {
 	 * @throws ToDoException
 	 * 
 	 */
-	void changeColourOfNote(String noteId, String colour, String token) throws ToDoException;
+	String changeColourOfNote(String noteId, String colour, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -97,7 +97,7 @@ public interface INoteService {
 	 * @throws ToDoException
 	 * 
 	 */
-	void deleteFromTrash(String noteId, String token) throws ToDoException;
+	String deleteFromTrash(String noteId, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -109,7 +109,7 @@ public interface INoteService {
 	 * @throws ToDoException
 	 * 
 	 */
-	void restoreFromTrash(String noteId, String token) throws ToDoException;
+	String restoreFromTrash(String noteId, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -121,7 +121,7 @@ public interface INoteService {
 	 * @throws ToDoException
 	 * 
 	 */
-	void pinNote(String noteId, String token) throws ToDoException;
+	String pinNote(String noteId, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -132,7 +132,7 @@ public interface INoteService {
 	 * @param token
 	 * @throws ToDoException
 	 */
-	void createLabel(Label label, String token) throws ToDoException;
+	String createLabel(Label label, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -144,7 +144,7 @@ public interface INoteService {
 	 * @param token
 	 * @throws ToDoException
 	 */
-	void updateLabel(String labelId, String labelName, String token) throws ToDoException;
+	String updateLabel(String labelId, String labelName, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -155,7 +155,7 @@ public interface INoteService {
 	 * @param token
 	 * @throws ToDoException
 	 */
-	void deleteLabel(String labelId, String token) throws ToDoException;
+	String deleteLabel(String labelId, String userId) throws ToDoException;
 
 	/**
 	 * <p>
@@ -166,7 +166,7 @@ public interface INoteService {
 	 * @return
 	 * @throws ToDoException
 	 */
-	List<Label> displayLabels(String token) throws ToDoException;
+	List<Label> displayLabels(String userId) throws ToDoException;
 
 	/**
 	 * This method is for archiving the Note
@@ -175,7 +175,7 @@ public interface INoteService {
 	 * @param token
 	 * @throws ToDoException
 	 */
-	void archieveNote(String noteId, String token) throws ToDoException;
+	String archieveNote(String noteId, String userId) throws ToDoException;
 
 	/**
 	 * This method is for setting the remainder to remind the user about the note he
@@ -187,7 +187,7 @@ public interface INoteService {
 	 * @throws ToDoException
 	 * @throws ParseException
 	 */
-	void setReminder(String noteId, String remindTime, String token) throws ToDoException, ParseException;
+	String setReminder(String noteId, String remindTime, String userId) throws ToDoException, ParseException;
 
 	/**
 	 * This method is for searching the Notes by LabelName
@@ -197,7 +197,7 @@ public interface INoteService {
 	 * @return
 	 * @throws ToDoException
 	 */
-	List<Note> searchNotesByLabel(String labelName, String token) throws ToDoException;
+	List<Note> searchNotesByLabel(String labelName, String userId) throws ToDoException;
 
 	/**
 	 * This method is for deleting the Label from the Note but not from the label
@@ -208,6 +208,17 @@ public interface INoteService {
 	 * @param token
 	 * @throws ToDoException
 	 */
-	void deleteLabelFromNote(String noteId, String labelName, String token) throws ToDoException;
+	String deleteLabelFromNote(String noteId, String labelName, String userId) throws ToDoException;
 
+	/**
+	 * This method is for adding a label to a particular note. the label added
+	 * should also be created in the label repository.
+	 * 
+	 * @param noteId
+	 * @param label
+	 * @param userId
+	 * @return
+	 * @throws ToDoException
+	 */
+	String addLabeltoNote(String noteId, Label label, String userId) throws ToDoException;
 }

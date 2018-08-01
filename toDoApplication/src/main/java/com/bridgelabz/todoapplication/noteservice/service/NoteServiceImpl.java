@@ -16,13 +16,17 @@ import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.bridgelabz.todoapplication.noteservice.model.Label;
 import com.bridgelabz.todoapplication.noteservice.model.Note;
 import com.bridgelabz.todoapplication.noteservice.model.NoteDTO;
+import com.bridgelabz.todoapplication.noteservice.repository.ILabelElasticRepository;
 import com.bridgelabz.todoapplication.noteservice.repository.ILabelRepository;
+import com.bridgelabz.todoapplication.noteservice.repository.INoteElasticRepository;
 import com.bridgelabz.todoapplication.noteservice.repository.INoteRepository;
 import com.bridgelabz.todoapplication.userservice.model.User;
 import com.bridgelabz.todoapplication.userservice.repository.Repository;
@@ -31,6 +35,7 @@ import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
 import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
 import com.bridgelabz.todoapplication.utilservice.Precondition.PreCondition;
 import com.bridgelabz.todoapplication.utilservice.RedisRepository.IRedisRepository;
+import com.bridgelabz.todoapplication.utilservice.messageaccessor.Messages;
 import com.bridgelabz.todoapplication.utilservice.rabbitmq.IProducer;
 
 /**
@@ -56,293 +61,331 @@ public class NoteServiceImpl implements INoteService {
 	IProducer producer;
 	@Autowired
 	IRedisRepository redisRepository;
+	@Autowired
+	Messages messages;
+	@Autowired
+	INoteElasticRepository noteElasticRepository;
+	@Autowired
+	ILabelElasticRepository labelElasticRepository;
+	public static final Logger logger = LoggerFactory.getLogger(NoteServiceImpl.class);
+	static String REQ_ID = "IN_Note_SERVICE";
+	static String RESP_ID = "OUT_Note_SERVICE";
 
 	@Override
 	/**
 	 * Method to create a note in the application
 	 */
-	public void createNote(NoteDTO noteDto, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteDto.getDescription(), "Descricption cannot be null");
-		PreCondition.checkNotNull(noteDto.getTitle(), "Title cannot be Null");
+	public String createNote(NoteDTO noteDto, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Creating Note in Service");
+		PreCondition.checkNotNull(noteDto.getDescription(), messages.get("101"));
+		PreCondition.checkNotNull(noteDto.getTitle(), messages.get("102"));
 		Note note = objectMapping.map(noteDto, Note.class);
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
-		}
-		if(!email.equals(redisRepository.getToken(email))) {
-			PreCondition.commonMethod("Email Match not Found");
-		}
-		Optional<User> user = userRepository.getByEmail(email);
+		Optional<User> user = userRepository.findById(userId);
 		note.setUserId(user.get().getId());
 		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
 		String createdDate = simpleDateFormat.format(new Date());
 		note.setCreatedDate(createdDate);
 		note.setLastUpdatedDate(createdDate);
 		noteRepository.save(note);
+		noteElasticRepository.save(note);
+		logger.info(RESP_ID + " Note created in Service");
 		for (int i = 0; i < note.getLabels().size(); i++) {
 			if (!note.getLabels().get(i).getLabelName().equals("")) {
+				logger.info("inside the loop");
 				Label label = new Label();
 				label.setLabelName(note.getLabels().get(i).getLabelName());
 				label.setNoteId(note.getNoteId());
 				label.setUserId(user.get().getId());
 				labelRepository.save(label);
+				labelElasticRepository.save(label);
 			}
 		}
+		return note.getNoteId();
 	}
 
 	/**
 	 * Method to delete an note in the application
 	 */
 	@Override
-	public void deleteNote(String noteId, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteId, "Note id cant be null");
-		PreCondition.checkNotNull(token1, "Token cants be null");
-		PreCondition.checkNotEmptyString(noteId, "NoteId cannot be an empty string");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an empty string");
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
+	public String deleteNote(String noteId, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Deleting Note in Service");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
 		Note note = noteRepository.getByNoteId(noteId).get();
 		note.setTrashStatus(true);
 		noteRepository.save(note);
+		noteElasticRepository.save(note);
+		logger.info(RESP_ID + " Note created in Service");
+		return note.getNoteId();
 	}
 
 	/**
 	 * Method to update a Note in the database inside the application
 	 */
 	@Override
-	public void updateNote(String noteId, String title, String description, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteId, "NoteId cannot be null");
-		PreCondition.checkNotNull(title, "Title cannot be null");
-		PreCondition.checkNotNull(description, "Description cannot be null");
-		PreCondition.checkNotEmptyString(noteId, "Noteid cannot be an empty String");
-		PreCondition.checkNotEmptyString(token1, "Token cannot be empty");
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
-
+	public String updateNote(String noteId, String title, String description, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Updating Note in Service");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotNull(title, messages.get("102"));
+		PreCondition.checkNotNull(description, messages.get("101"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Note note = noteRepository.getByNoteId(noteId).get();
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		if (!note.isTrashStatus()) {
 			note.setTitle(title);
 			note.setDescription(note.getDescription());
 			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
 			note.setLastUpdatedDate(simpleDateFormat.format(new Date()));
 			noteRepository.save(note);
+			noteElasticRepository.save(note);
+			logger.info(RESP_ID + " Note Updated in service");
 		}
+		return noteId;
 	}
 
 	/**
-	 * Method to display all the Notes availaible in the application
+	 * Method to display all the Notes available in the application
 	 */
 	@Override
-	public List<Note> displayAllNotes(String token1) throws ToDoException {
+	public List<Note> displayAllNotes(String userId) throws ToDoException {
+		logger.info(REQ_ID + " Displaying Notes in Service");
 		List<Note> list = new ArrayList<>();
-		List<Note> modifiedList = new ArrayList<>();
-		PreCondition.checkNotEmptyString(token1, "Token cannot be empty");
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		list = noteElasticRepository.findNotesByUserId(userId);
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Optional<User> user = userRepository.getByEmail(email);
-		list = noteRepository.findNotesByUserId(user.get().getId());
-		for (Note n : list) {
-			if (n.isPinnedStatus() && !n.isTrashStatus() && !n.isArchieveStatus()) {
-				modifiedList.add(n);
-			}
-		}
-		for (Note n : list) {
-			if (!n.isArchieveStatus() && !n.isTrashStatus() && !n.isPinnedStatus()) {
-				modifiedList.add(n);
-			}
-		}
-		for (Note n : list) {
-			if (n.isArchieveStatus() && !n.isTrashStatus()) {
-				modifiedList.add(n);
-			}
-		}
-		return modifiedList;
+		return list;
 	}
 
 	/**
 	 * Method for changing the color of the Note
 	 */
 	@Override
-	public void changeColourOfNote(String noteId, String colour, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteId, "Note id cant be null");
-		PreCondition.checkNotNull(token1, "Token cants be null");
-		PreCondition.checkNotNull(colour, "Color cant be null");
-		PreCondition.checkNotEmptyString(noteId, "NoteId cannot be an empty string");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an empty string");
-		PreCondition.checkNotEmptyString(colour, "Colour cannot be empty string");
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
+	public String changeColourOfNote(String noteId, String colour, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Changing the colour of Notes");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotNull(colour, messages.get("109"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		PreCondition.checkNotEmptyString(colour, messages.get("110"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with corresponding id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
-		Note note = noteRepository.getByNoteId(noteId).get();
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		if (!note.isTrashStatus()) {
 			note.setColour(colour);
 			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
 			note.setLastUpdatedDate(simpleDateFormat.format(new Date()));
 			noteRepository.save(note);
+			noteElasticRepository.save(note);
+			logger.info(RESP_ID + "Colour changed");
+			return note.getNoteId();
 		}
+		return noteId;
 	}
 
 	/**
 	 * Method for deleting the Note from the trash
 	 */
 	@Override
-	public void deleteFromTrash(String noteId, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteId, "Note id cant be null");
-		PreCondition.checkNotNull(token1, "Token cants be null");
-		PreCondition.checkNotEmptyString(noteId, "NoteId cannot be an empty string");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an empty string");
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
+	public String deleteFromTrash(String noteId, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Deleting from the trash");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		noteRepository.deleteById(noteId);
+		noteElasticRepository.deleteById(noteId);
+		logger.info(RESP_ID + " Deleted from the trash");
+		return noteId;
 	}
 
 	/**
 	 * Method for restoring the Note from the Trash
 	 */
 	@Override
-	public void restoreFromTrash(String noteId, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteId, "Note id cant be null");
-		PreCondition.checkNotNull(token1, "Token cants be null");
-		PreCondition.checkNotEmptyString(noteId, "NoteId cannot be an empty string");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an empty string");
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
+	public String restoreFromTrash(String noteId, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Restoring from trash in Service");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Note note = noteRepository.getByNoteId(noteId).get();
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		if (note.isTrashStatus()) {
 			note.setTrashStatus(false);
 			noteRepository.save(note);
+			noteElasticRepository.save(note);
+			logger.info(RESP_ID + " Restored from trash in Service");
 		}
-
+		return noteId;
 	}
 
 	/**
 	 * Method for Pinning the Note
 	 */
 	@Override
-	public void pinNote(String noteId, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteId, "Note id cant be null");
-		PreCondition.checkNotNull(token1, "Token cants be null");
-		PreCondition.checkNotEmptyString(noteId, "NoteId cannot be an empty string");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an empty string");
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
+	public String pinNote(String noteId, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Pinning the Note in Service");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Note note = noteRepository.getByNoteId(noteId).get();
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		if (!note.isTrashStatus() && !note.isArchieveStatus()) {
 			note.setPinnedStatus(true);
 			noteRepository.save(note);
+			noteElasticRepository.save(note);
+			logger.info(RESP_ID + " the Note is pinned in Service");
 		}
+		return noteId;
 	}
-/**
- * Method for archiving the note. The archived note will come at the end of the list of notes 
- */
+
+	/**
+	 * Method for archiving the note. The archived note will come at the end of the
+	 * list of notes
+	 */
 	@Override
-	public void archieveNote(String noteId, String token1) throws ToDoException {
-		PreCondition.checkNotNull(noteId, "Note id cant be null");
-		PreCondition.checkNotNull(token1, "Token cants be null");
-		PreCondition.checkNotEmptyString(noteId, "NoteId cannot be an empty string");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an empty string");
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
+	public String archieveNote(String noteId, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Archieving the note in Service");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Note note = noteRepository.getByNoteId(noteId).get();
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		if (!note.isTrashStatus() && !note.isPinnedStatus()) {
 			note.setArchieveStatus(true);
 			noteRepository.save(note);
+			noteElasticRepository.save(note);
+			logger.info(RESP_ID + " The Note is Archieved");
 		}
+		return noteId;
 	}
-/**
- * This method is for creating the Label
- */
-	@Override
-	public void createLabel(Label label, String token1) throws ToDoException {
-		PreCondition.checkNotNull(label.getLabelName(), "Label name cannot be null");
-		PreCondition.checkNotNull(token1, "Token cannot be Null");
-		PreCondition.checkNotEmptyString(label.getLabelName(), "Label name cannot be an empty string");
-		PreCondition.checkNotNull(token1, "Label Name cannot be empty");
 
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+	/**
+	 * This method is for creating the Label
+	 */
+	@Override
+	public String createLabel(Label label, String userId) throws ToDoException {
+		logger.info(REQ_ID + " creating the label in Service");
+		PreCondition.checkNotNull(label.getLabelName(), messages.get("111"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(label.getLabelName(), messages.get("112"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Optional<User> user = userRepository.getByEmail(email);
-		List<Label> list = labelRepository.findLabelsByUserId(user.get().getId());
+		List<Label> list = labelElasticRepository.findLabelsByUserId(userId);
 		for (Label l : list) {
 			if (l.getLabelName().equals(label.getLabelName())) {
-				PreCondition.commonMethod("Label already present");
+				PreCondition.commonMethod(messages.get("113"));
 			}
 		}
-		label.setUserId(user.get().getId());
+		label.setUserId(userId);
 		labelRepository.save(label);
+		labelElasticRepository.save(label);
+		logger.info(RESP_ID + " the Label is created in Service");
+		return label.getLableId();
 	}
-/**
- * The method is for updating the label
- */
+
+	/**
+	 * The method is for updating the label
+	 */
 	@Override
-	public void updateLabel(String labelId, String labelName, String token1) throws ToDoException {
-		PreCondition.checkNotNull(labelId, "Label id cannot be null");
-		PreCondition.checkNotEmptyString(labelId, "Label id cannot be an empty string");
-		PreCondition.checkNotNull(labelName, "Label Name cannot be Null");
-		PreCondition.checkNotEmptyString(labelName, "Label Name cannot be an empty string");
-		PreCondition.checkNotNull(token1, "Token cannot be null");
-		PreCondition.checkNotEmptyString(token1, "Token cannot be an empty string");
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+	public String updateLabel(String labelId, String labelName, String userId) throws ToDoException {
+		logger.info(REQ_ID + " The label is updating in Service");
+		PreCondition.checkNotNull(labelId, messages.get("114"));
+		PreCondition.checkNotEmptyString(labelId, messages.get("115"));
+		PreCondition.checkNotNull(labelName, messages.get("111"));
+		PreCondition.checkNotEmptyString(labelName, messages.get("112"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Label label = labelRepository.findById(labelId).get();
+		Label label = labelElasticRepository.findById(labelId).get();
 		label.setLabelName(labelName);
 		labelRepository.save(label);
+		labelElasticRepository.save(label);
+		logger.info(RESP_ID + "The label is updated in Service");
+		return labelId;
 	}
-/**
- * The method is for deleting the Label 
- */
+
+	/**
+	 * The method is for deleting the Label
+	 */
 	@Override
-	public void deleteLabel(String labelName, String token1) throws ToDoException {
-		PreCondition.checkNotNull(labelName, "Label Id cannot be Null");
-		PreCondition.checkNotEmptyString(labelName, "Label Id cannot be an empty string");
-		PreCondition.checkNotNull(token1, "Token cannot be Null");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an Empty String");
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+	public String deleteLabel(String labelName, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Deleting the Label in Service");
+		PreCondition.checkNotNull(labelName, messages.get("114"));
+		PreCondition.checkNotEmptyString(labelName, messages.get("115"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		for(int i=0;i<labelRepository.findByLabelName(labelName).size();i++) {
-		labelRepository.deleteById(labelRepository.findByLabelName(labelName).get(i).getLableId());
+		for (int i = 0; i < labelRepository.findByLabelName(labelName).size(); i++) {
+			labelElasticRepository.deleteById(labelRepository.findByLabelName(labelName).get(i).getLableId());
+			logger.info(RESP_ID + "Deletd the Label in Service");
 		}
 		List<Note> notes = noteRepository.findAll();
 		for (int i = 0; i < notes.size(); i++) {
@@ -352,43 +395,52 @@ public class NoteServiceImpl implements INoteService {
 					labels.remove(label);
 					notes.get(i).setLabels(labels);
 					noteRepository.save(notes.get(i));
+					noteElasticRepository.save(notes.get(i));
+					logger.info(RESP_ID + "Deleted from the notes also");
 				}
 			}
 		}
+		return labelName;
 	}
-/**
- * The method is for displaying the labels
- */
+
+	/**
+	 * The method is for displaying the labels
+	 */
 	@Override
-	public List<Label> displayLabels(String token1) throws ToDoException {
+	public List<Label> displayLabels(String userId) throws ToDoException {
+		logger.info(REQ_ID + " Displaying the Labels in Service");
 		List<Label> list = new ArrayList<>();
-		PreCondition.checkNotNull(token1, "Token cannot be null");
-		PreCondition.checkNotEmptyString(token1, "Token cannot be empty string");
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Optional<User> user = userRepository.getByEmail(email);
-		list = labelRepository.findLabelsByUserId(user.get().getId());
+		list = labelElasticRepository.findLabelsByUserId(userId);
+		logger.info(RESP_ID + " The labels are Displayed in Service");
 		return list;
 	}
-/**
- * The method is for setting the reminders
- */
+
+	/**
+	 * The method is for setting the reminders
+	 */
 	@Override
-	public void setReminder(String noteId, String remindTime, String token1) throws ToDoException, ParseException {
-		PreCondition.checkNotNull(noteId, "Note id cant be null");
-		PreCondition.checkNotEmptyString(noteId, "NoteId cannot be an empty string");
-		PreCondition.checkNotNull(remindTime, "Remindtime cannot be Null");
-		PreCondition.checkNotEmptyString(remindTime, "RemindTime cannot be an empty String");
-		String email = token.parseJWT(token1);
-		if (!noteRepository.existsById(noteId)) {
-			PreCondition.commonMethod("Note not present with the corresponding Id");
+	public String setReminder(String noteId, String remindTime, String userId) throws ToDoException, ParseException {
+		logger.info(REQ_ID + "Setting the Reminder in Service");
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		PreCondition.checkNotNull(remindTime, messages.get("116"));
+		PreCondition.checkNotEmptyString(remindTime, messages.get("117"));
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
 		}
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Note note = noteRepository.getByNoteId(noteId).get();
+		Optional<User> user = userRepository.findById(userId);
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		note.setReminder(remindTime);
 		Date reminder = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(remindTime);
 		long timeDifference = reminder.getTime() - new Date().getTime();
@@ -397,51 +449,91 @@ public class NoteServiceImpl implements INoteService {
 
 			@Override
 			public void run() {
-				String to = email;
+				String to = user.get().getEmail();
 				String subject = "Reminder about your Note";
 				String body = "Note Title:" + note.getTitle() + "\nNote Discription:" + note.getDescription();
 				producer.produceMsg(to, subject, body);
 			}
 		}, timeDifference);
 		noteRepository.save(note);
+		noteElasticRepository.save(note);
+		logger.error(RESP_ID + " The reminder is set in the Service");
+		return note.getNoteId();
 	}
-/**
- * The method is for search notes by Label
- */
+
+	/**
+	 * The method is for search notes by Label
+	 */
 	@Override
-	public List<Note> searchNotesByLabel(String labelName, String token1) throws ToDoException {
-		PreCondition.checkNotNull(labelName, "Label Name cannot be Null");
-		PreCondition.checkNotEmptyString(labelName, "Label Name cannot be an empty string");
-		PreCondition.checkNotNull(token1, "Token cannot be Null");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an Empty String");
+	public List<Note> searchNotesByLabel(String labelName, String userId) throws ToDoException {
+		logger.info(REQ_ID + " The Notes are searching by the Label Name entered");
+		PreCondition.checkNotNull(labelName, messages.get("111"));
+		PreCondition.checkNotEmptyString(labelName, messages.get("112"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
 		List<Note> listOfNotes = new ArrayList<>();
-		List<Label> labelList = labelRepository.findByLabelName(labelName);
-		for (Label label : labelList) {
-			listOfNotes.add(noteRepository.findById(label.getNoteId()).get());
+		List<Label> labelList = labelElasticRepository.findByLabelName(labelName);
+		if (labelList.size() == 0) {
+			logger.error("No such label present");
+			PreCondition.commonMethod(messages.get("118"));
 		}
+		for (Label label : labelList) {
+			listOfNotes.add(noteElasticRepository.findById(label.getNoteId()).get());
+		}
+		logger.info(RESP_ID + " The Notes are searched by the Label");
 		return listOfNotes;
 	}
-/**
- * The method is for deleting the Label from The note
- */
+
+	/**
+	 * The method is for deleting the Label from The note
+	 */
 	@Override
-	public void deleteLabelFromNote(String noteId,String labelName, String token1) throws ToDoException {
-		PreCondition.checkNotNull(labelName, "Label Id cannot be Null");
-		PreCondition.checkNotEmptyString(labelName, "Label Id cannot be an empty string");
-		PreCondition.checkNotNull(token1, "Token cannot be Null");
-		PreCondition.checkNotEmptyString(token1, "token cannot be an Empty String");
-		String email = token.parseJWT(token1);
-		if (!userRepository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("Invalid User");
+	public String deleteLabelFromNote(String noteId, String labelName, String userId) throws ToDoException {
+		logger.info(REQ_ID + " Deleting Label From the Note");
+		PreCondition.checkNotNull(labelName, messages.get(messages.get("111")));
+		PreCondition.checkNotEmptyString(labelName, messages.get("112"));
+		PreCondition.checkNotNull(userId, messages.get("104"));
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
 		}
-		Note note = noteRepository.getByNoteId(noteId).get();
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		List<Label> labels = note.getLabels();
 		for (Label label : labels) {
 			if (label.getLabelName().equals(labelName)) {
 				labels.remove(label);
 				note.setLabels(labels);
 				noteRepository.save(note);
+				noteElasticRepository.save(note);
+				logger.info(RESP_ID + " The Label is delted from the note");
 			}
-		}	
+		}
+		return noteId;
+	}
+
+	/**
+	 * This method is for adding a label to a particular note. the label added
+	 * should also be created in the label repository.
+	 */
+	@Override
+	public String addLabeltoNote(String noteId, Label label, String userId) throws ToDoException {
+		PreCondition.checkNotNull(noteId, messages.get("103"));
+		PreCondition.checkNotEmptyString(noteId, messages.get("105"));
+		if (!noteElasticRepository.existsById(noteId)) {
+			logger.error("Note not present with the corresponding Id");
+			PreCondition.commonMethod(messages.get("108"));
+		}
+		Note note = noteElasticRepository.getByNoteId(noteId).get();
+		List<Label> listOfLabels = note.getLabels();
+		listOfLabels.add(label);
+		note.setLabels(listOfLabels);
+		noteRepository.save(note);
+		noteElasticRepository.save(note);
+		label.setNoteId(noteId);
+		label.setUserId(userId);
+		labelRepository.save(label);
+		labelElasticRepository.save(label);
+		return noteId;
 	}
 }

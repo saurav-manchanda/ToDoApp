@@ -28,7 +28,7 @@ public interface IUserService {
 	 *             Method to update the User
 	 *             </p>
 	 */
-	public void updateUser(User user) throws ToDoException, MessagingException;
+	public void updateUser(User user,String validToken) throws ToDoException, MessagingException;
 
 	/**
 	 * @param user
@@ -38,7 +38,7 @@ public interface IUserService {
 	 *             This is to validate the User
 	 *             </p>
 	 */
-	public boolean validateUser(User user,HttpServletResponse resp) throws ToDoException;
+	public boolean validateUser(User user,HttpServletResponse resp,String validToken) throws ToDoException;
 
 	/**
 	 * @param user

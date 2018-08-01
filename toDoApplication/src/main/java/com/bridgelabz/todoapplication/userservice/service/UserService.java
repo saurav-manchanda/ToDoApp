@@ -16,8 +16,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import com.bridgelabz.todoapplication.userservice.model.User;
 import com.bridgelabz.todoapplication.userservice.repository.Repository;
 import com.bridgelabz.todoapplication.utilservice.MailService;
@@ -25,6 +27,7 @@ import com.bridgelabz.todoapplication.utilservice.ToDoException;
 import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
 import com.bridgelabz.todoapplication.utilservice.Precondition.PreCondition;
 import com.bridgelabz.todoapplication.utilservice.RedisRepository.IRedisRepository;
+import com.bridgelabz.todoapplication.utilservice.messageaccessor.Messages;
 import com.bridgelabz.todoapplication.utilservice.rabbitmq.IProducer;
 
 /**
@@ -48,7 +51,13 @@ public class UserService implements IUserService {
 	private PasswordEncoder passwordEncoder;
 	@Autowired
 	IRedisRepository redisRepository;
+	@Autowired
+	Messages messages;
+	@Value("${ipaddress}")
+	String ipAddress;
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+	static String REQ_ID = "IN_USER_SERVICE";
+	static String RESP_ID = "OUT_USER_SERVICE";
 
 	/**
 	 * @param user
@@ -59,18 +68,18 @@ public class UserService implements IUserService {
 	 *             </p>
 	 */
 	@Override
-	public boolean validateUser(User user, HttpServletResponse resp) throws ToDoException {
+	public boolean validateUser(User user, HttpServletResponse resp,String validToken) throws ToDoException {
+		logger.info(REQ_ID + " Inside ValidateUser method");
 		String email = user.getEmail();
 		String password = user.getPassword();
-		PreCondition.checkNotNull(email, "Email cannot be Null");
-		PreCondition.checkNotNull(password, "Password Cannot be null");
-		PreCondition.checkNotEmptyString(email, "Email cannot be an empty string");
-		PreCondition.checkNotEmptyString(password, "Password cannot be an empty string");
+		PreCondition.checkNotNull(email,messages.get("201"));
+		PreCondition.checkNotNull(password, messages.get("203"));
+		PreCondition.checkNotEmptyString(email, messages.get("202"));
+		PreCondition.checkNotEmptyString(password, messages.get("204"));
 		if (repository.getByEmail(email).isPresent()) {
 			Optional<User> user1 = repository.getByEmail(email);
 			if (passwordEncoder.matches(password, user1.get().getPassword())
 					&& user1.get().getStatus().equals("true")) {
-				String validToken = tokengenerator(user);
 				resp.addHeader("Authorization", validToken);
 				return true;
 			}
@@ -88,12 +97,14 @@ public class UserService implements IUserService {
 	 */
 	@Override
 	public boolean checkEmail(User user) throws ToDoException {
+		logger.info(REQ_ID + " checkEmail method started");
 		String email = user.getEmail();
-		PreCondition.checkNotEmptyString(email, "Email cannot be empty");
-		PreCondition.checkNotNull(email, "Email cannot be Null");
+		PreCondition.checkNotEmptyString(email, messages.get("201"));
+		PreCondition.checkNotNull(email, messages.get("202"));
 		if (repository.getByEmail(email).isPresent()) {
-			PreCondition.commonMethod("User not present with the corresponding email");
+			PreCondition.commonMethod(messages.get("205"));
 		}
+		logger.info(RESP_ID + " checkmail method ended");
 		return false;
 	}
 
@@ -106,15 +117,16 @@ public class UserService implements IUserService {
 	 *             </p>
 	 */
 	@Override
-	public void updateUser(User user) throws ToDoException, MessagingException {
-		PreCondition.checkNotNull(user.getEmail(), "Email cannot be null");
-		PreCondition.checkNotNull(user.getPassword(), "Password cannot be Null");
-		PreCondition.checkNotNull(user.getUserName(), "Username cannot be Null");
-		String validToken = tokengenerator(user);
-		redisRepository.setToken(validToken);
+	public void updateUser(User user,String validToken) throws ToDoException, MessagingException {
+		logger.info(REQ_ID + " Update User method started");
+		PreCondition.checkNotNull(user.getEmail(), messages.get("201"));
+		PreCondition.checkNotNull(user.getPassword(), messages.get("203"));
+		PreCondition.checkNotNull(user.getUserName(), messages.get("206"));
 		sendActivationLink(validToken, user);
 		user.setPassword(passwordEncoder.encode(user.getPassword()));
 		repository.save(user);
+		redisRepository.setToken(validToken);
+		logger.info(RESP_ID + " Update User method ended");
 	}
 
 	/**
@@ -128,16 +140,16 @@ public class UserService implements IUserService {
 	 */
 	@Override
 	public void sendActivationLink(String validToken, User user) throws ToDoException, MessagingException {
+		logger.info(REQ_ID + " sendActivationLink method started");
 		String email = user.getEmail();
-		PreCondition.checkNotNull(email, "Email cannot be Null");
-		PreCondition.checkNotEmptyString(email, "Email cannot be empty String");
+		PreCondition.checkNotNull(email, messages.get("201"));
+		PreCondition.checkNotEmptyString(email, messages.get("202"));
 		String to = email;
 		String subject = "Activation Link";
-		String body = "Click on the link below to activate your acount\n" + "http://localhost:8080/activate/?"
+		String body = "Click on the link below to activate your acount\n" + ipAddress+"/activate/?"
 				+ validToken;
 		producer.produceMsg(to, subject, body);
-
-		logger.info("mail sent successfully to activate the account");
+		logger.info(RESP_ID + " mail sent successfully to activate the account");
 
 	}
 
@@ -150,14 +162,15 @@ public class UserService implements IUserService {
 	 */
 	@Override
 	public void sendMail(User user, String validToken) throws MessagingException {
+		logger.info(REQ_ID + " sendMail method started");
 		String email = user.getEmail();
 		if (repository.getByEmail(email).isPresent()) {
 			String to = email;
 			String subject = "To change your password";
-			String body = "Click on the link below to change your password\n" + "http://localhost:8080/newpassword/?"
+			String body = "Click on the link below to change your password\n" + ipAddress+"/newpassword/?"
 					+ validToken;
 			producer.produceMsg(to, subject, body);
-			logger.info("Mail sent successfully to change the password");
+			logger.info(RESP_ID + " Mail sent successfully to change the password");
 		}
 	}
 
@@ -169,9 +182,11 @@ public class UserService implements IUserService {
 	 */
 	@Override
 	public boolean activate(String token2) {
+		logger.info(REQ_ID + " inside activate method of service");
 		Optional<User> user = repository.getByEmail(token.parseJWT(token2));
 		user.get().setStatus("true");
 		repository.save(user.get());
+		logger.info(RESP_ID + " out of activate method of service");
 		return true;
 	}
 
@@ -183,6 +198,7 @@ public class UserService implements IUserService {
 	 */
 	@Override
 	public String tokengenerator(User user) {
+		logger.info(REQ_ID + " inside the tokengenerator method of service");
 		String validToken = token.generator(user);
 		token.parseJWT(validToken);
 		logger.info("The token generated is:" + validToken);
@@ -199,6 +215,7 @@ public class UserService implements IUserService {
 	 */
 	@Override
 	public void resetPassword(String token1, String password, String newPassword) throws ToDoException {
+		logger.info(REQ_ID + " inside resetPassword method of service");
 		if (password.equals(newPassword)) {
 			String email = token.parseJWT(token1);
 			Optional<User> user1 = repository.getByEmail(email);
@@ -209,18 +226,23 @@ public class UserService implements IUserService {
 			user.setStatus(user1.get().getStatus());
 			user.setUserName(user1.get().getUserName());
 			repository.save(user);
+			logger.info(RESP_ID + " resetPassword done");
 		} else {
-			PreCondition.commonMethod("password and comfirm password donot match");
+			logger.error("password and comfirm password donot match");
+			PreCondition.commonMethod(messages.get("208"));
 		}
 	}
-/**
- * The method is for checking whether the email of the user is present or not in the database
- */
+
+	/**
+	 * The method is for checking whether the email of the user is present or not in
+	 * the database
+	 */
 	@Override
 	public boolean isEmailPresent(User user) throws ToDoException {
+		logger.info(REQ_ID + " isEmailPresent method of service");
 		String email = user.getEmail();
-		PreCondition.checkNotEmptyString(email, "Email cannot be an empty String");
-		PreCondition.checkNotNull(email, "Email cannot be Null");
+		PreCondition.checkNotEmptyString(email, messages.get("202"));
+		PreCondition.checkNotNull(email, messages.get("201"));
 		if (repository.getByEmail(email).isPresent()) {
 			return true;
 		}

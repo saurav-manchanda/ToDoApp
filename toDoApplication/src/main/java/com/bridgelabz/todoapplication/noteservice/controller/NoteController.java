@@ -18,7 +18,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,14 +42,15 @@ import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
  *         </p>
  */
 @RestController
+@RequestMapping(value = "/notes")
 public class NoteController {
 	@Autowired
 	INoteService noteService;
 	@Autowired
 	ObjectMapping objectMapping;
 	public static final Logger logger = LoggerFactory.getLogger(NoteController.class);
-	static String REQ_ID = "IN_Note";
-	static String RESP_ID = "OUT_Note";
+	static String REQ_ID = "IN_Note_CONTROLLER";
+	static String RESP_ID = "OUT_Note_CONTROLLER";
 
 	/**
 	 * @param note
@@ -61,13 +64,15 @@ public class NoteController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/createnote", method = RequestMethod.POST)
-	public ResponseEntity<ResponseDTO> createNote(@RequestBody NoteDTO noteDto, HttpServletRequest request)
-			throws ToDoException {
+	public ResponseEntity<ResponseDTO> createNote(@RequestBody NoteDTO noteDto, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
+		// logger.debug("hello");
+		// logger.warn("hello");
 		logger.info(REQ_ID + "Creating a new note");
-		String token = request.getHeader("Authorization");
-		noteService.createNote(noteDto, token);
+		String userId = (String) request.getAttribute("userId");
+		String noteId = noteService.createNote(noteDto, userId);
 		logger.info(RESP_ID + " Note successfully created");
-		return new ResponseEntity("Note successfully created", HttpStatus.OK);
+		return new ResponseEntity("Note successfully created with id: " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -82,14 +87,14 @@ public class NoteController {
 	 * @throws ToDoException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	@RequestMapping(value = "/deletenote", method = RequestMethod.PUT)
-	public ResponseEntity<ResponseDTO> deleteNote(HttpServletRequest request, @RequestBody String noteId)
-			throws ToDoException {
+	@RequestMapping(value = "/deletenote/{noteId}", method = RequestMethod.PUT)
+	public ResponseEntity<ResponseDTO> deleteNote(HttpServletRequest request, @PathVariable String noteId,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Deleting a Note");
-		String token = request.getHeader("Authorization");
-		noteService.deleteNote(noteId, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.deleteNote(noteId, userId);
 		logger.info(RESP_ID + " Note successfully Deleted");
-		return new ResponseEntity("Note Successfully deleted", HttpStatus.OK);
+		return new ResponseEntity("Note Successfully deleted " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -107,14 +112,14 @@ public class NoteController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/updatenote", method = RequestMethod.PUT)
-	public ResponseEntity<ResponseDTO> updateNote(@RequestBody NoteDTO noteDto, HttpServletRequest request)
-			throws ToDoException {
+	public ResponseEntity<ResponseDTO> updateNote(@RequestBody NoteDTO noteDto, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		Note note = objectMapping.map(noteDto, Note.class);
 		logger.info(REQ_ID + " Updating a note");
-		String token = request.getHeader("Authorization");
-		noteService.updateNote(note.getNoteId(), note.getTitle(), note.getDescription(), token);
+		String userId = (String) request.getAttribute("userId");
+		String noteId = noteService.updateNote(note.getNoteId(), note.getTitle(), note.getDescription(), userId);
 		logger.info(RESP_ID + " Note sucessfully updated");
-		return new ResponseEntity("Note sucessfully updated", HttpStatus.OK);
+		return new ResponseEntity("Note sucessfully updated " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -130,11 +135,12 @@ public class NoteController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/displayAllNotes", method = RequestMethod.GET)
-	public ResponseEntity displayAllNotes(HttpServletRequest request) throws ToDoException {
+	public ResponseEntity displayAllNotes(HttpServletRequest request, @RequestHeader("token") String token)
+			throws ToDoException {
 		logger.info(REQ_ID + " Displaying all notes");
-		String token = request.getHeader("Authorization");
+		String userId = (String) request.getAttribute("userId");
 		List<Note> list = new ArrayList<>();
-		list = noteService.displayAllNotes(token);
+		list = noteService.displayAllNotes(userId);
 		logger.info(RESP_ID + " All notes are got to display by the controller");
 		return new ResponseEntity(list, HttpStatus.OK);
 	}
@@ -153,14 +159,14 @@ public class NoteController {
 	 * @throws ToDoException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	@RequestMapping(value = "/changecolour", method = RequestMethod.PUT)
-	public ResponseEntity<ResponseDTO> changeColour(@RequestParam("Note Id") String noteId,
-			@RequestParam("colour") String colour, HttpServletRequest request) throws ToDoException {
+	@RequestMapping(value = "/changecolour/{noteId}", method = RequestMethod.PUT)
+	public ResponseEntity<ResponseDTO> changeColour(@PathVariable String noteId, @RequestParam("colour") String colour,
+			HttpServletRequest request, @RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Changing the colour of Note");
-		String token = request.getHeader("Authorization");
-		noteService.changeColourOfNote(noteId, colour, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.changeColourOfNote(noteId, colour, userId);
 		logger.info(RESP_ID + " Colour Successfully Changed ");
-		return new ResponseEntity("Colour successfully changed", HttpStatus.OK);
+		return new ResponseEntity("Colour successfully changed " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -175,14 +181,14 @@ public class NoteController {
 	 * @throws ToDoException
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/deletepermanently", method = RequestMethod.DELETE)
-	public ResponseEntity<ResponseDTO> deleteFromTrash(@RequestBody String noteId, HttpServletRequest request)
-			throws ToDoException {
+	@RequestMapping(value = "/deletepermanently/{noteId}", method = RequestMethod.DELETE)
+	public ResponseEntity<ResponseDTO> deleteFromTrash(@PathVariable String noteId, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Deleting a Note permanently");
-		String token = request.getHeader("Authorization");
-		noteService.deleteFromTrash(noteId, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.deleteFromTrash(noteId, userId);
 		logger.info(RESP_ID + " Note Deleted Permanently ");
-		return new ResponseEntity("Note deleted Permanently ", HttpStatus.OK);
+		return new ResponseEntity("Note deleted Permanently " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -199,14 +205,14 @@ public class NoteController {
 	 * @throws ToDoException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	@RequestMapping(value = "/restorefromtrash", method = RequestMethod.PUT)
-	public ResponseEntity<ResponseDTO> restoreFromTrash(@RequestBody String noteId, HttpServletRequest request)
-			throws ToDoException {
+	@RequestMapping(value = "/restorefromtrash/{noteId}", method = RequestMethod.PUT)
+	public ResponseEntity<ResponseDTO> restoreFromTrash(@PathVariable String noteId, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Restoring from trash");
-		String token = request.getHeader("Authorization");
-		noteService.restoreFromTrash(noteId, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.restoreFromTrash(noteId, userId);
 		logger.info(RESP_ID + " Restored from Trashed");
-		return new ResponseEntity("Restrored from trash", HttpStatus.OK);
+		return new ResponseEntity("Restrored from trash " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -221,14 +227,14 @@ public class NoteController {
 	 * @throws ToDoException
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/pinnote", method = RequestMethod.PUT)
-	public ResponseEntity<ResponseDTO> pinNote(@RequestBody String noteId, HttpServletRequest request)
-			throws ToDoException {
+	@RequestMapping(value = "/pinnote/{noteId}", method = RequestMethod.PUT)
+	public ResponseEntity<ResponseDTO> pinNote(@PathVariable String noteId, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Pinning a note");
-		String token = request.getHeader("Authorization");
-		noteService.pinNote(noteId, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.pinNote(noteId, userId);
 		logger.info(RESP_ID + " Pinned the Note");
-		return new ResponseEntity("Pinned the Note", HttpStatus.OK);
+		return new ResponseEntity("Pinned the Note " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -243,14 +249,14 @@ public class NoteController {
 	 *             </p>
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/archive", method = RequestMethod.PUT)
-	public ResponseEntity<ResponseDTO> archieveNote(@RequestBody String noteId, HttpServletRequest request)
-			throws ToDoException {
+	@RequestMapping(value = "/archive/{noteId}", method = RequestMethod.PUT)
+	public ResponseEntity<ResponseDTO> archieveNote(@PathVariable String noteId, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Archiving a note");
-		String token = request.getHeader("Authorization");
-		noteService.archieveNote(noteId, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.archieveNote(noteId, userId);
 		logger.info(RESP_ID + " Archived a note");
-		return new ResponseEntity("Archived the the Note", HttpStatus.OK);
+		return new ResponseEntity("Archived the the Note " + noteId, HttpStatus.OK);
 	}
 
 	/**
@@ -264,13 +270,35 @@ public class NoteController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/createlabel", method = RequestMethod.POST)
-	public ResponseEntity<ResponseDTO> createLable(@RequestBody Label label, HttpServletRequest request)
-			throws ToDoException {
+	public ResponseEntity<ResponseDTO> createLable(@RequestBody Label label, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Creating a Label");
-		String token = request.getHeader("Authorization");
-		noteService.createLabel(label, token);
+		String userId = (String) request.getAttribute("userId");
+		String labelId = noteService.createLabel(label, userId);
 		logger.info(RESP_ID + "Label Created successfully ");
-		return new ResponseEntity(new ResponseDTO("Label Created successfully ", 200), HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("Label Created successfully " + labelId, 200), HttpStatus.OK);
+	}
+
+	/**
+	 * @param noteId
+	 * @param label
+	 * @param request
+	 * @param token
+	 * @return
+	 * @throws ToDoException
+	 *             <p>
+	 *             This method is for adding the label to a particular note
+	 *             </p>
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@RequestMapping(value = "/addlabeltoanote/{noteId}", method = RequestMethod.POST)
+	public ResponseEntity<ResponseDTO> addLabelToNote(@PathVariable String noteId, @RequestBody Label label,
+			HttpServletRequest request, @RequestHeader("token") String token) throws ToDoException {
+		logger.info(REQ_ID + " Creating a Label");
+		String userId = (String) request.getAttribute("userId");
+		noteService.addLabeltoNote(noteId, label, userId);
+		logger.info(RESP_ID + "Label Created successfully ");
+		return new ResponseEntity(new ResponseDTO("Label added successfully " + noteId, 200), HttpStatus.OK);
 	}
 
 	/**
@@ -284,25 +312,35 @@ public class NoteController {
 	 *             </p>
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/updatelabel", method = RequestMethod.POST)
-	public ResponseEntity<ResponseDTO> updateLabel(@RequestParam String labelId, @RequestParam String labelName,
-			HttpServletRequest request) throws ToDoException {
+	@RequestMapping(value = "/updatelabel/{labelId}", method = RequestMethod.POST)
+	public ResponseEntity<ResponseDTO> updateLabel(@PathVariable String labelId, @RequestParam String labelName,
+			HttpServletRequest request, @RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Updating a label");
-		String token = request.getHeader("Authorization");
-		noteService.updateLabel(labelId, labelName, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.updateLabel(labelId, labelName, userId);
 		logger.info(RESP_ID + "Label Updated successfully ");
-		return new ResponseEntity(new ResponseDTO("Label Created successfully ", 200), HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("Label Created successfully " + labelId, 200), HttpStatus.OK);
 	}
 
+	/**
+	 * @param noteId
+	 * @param labelName
+	 * @param request
+	 * @return
+	 * @throws ToDoException
+	 *             <p>
+	 *             This is method is for deleting a label from a note.
+	 *             </p>
+	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/deletelabelfromanote", method = RequestMethod.DELETE)
-	public ResponseEntity<ResponseDTO> deleteLabelFromNote(@RequestParam String noteId, @RequestParam String labelName,
-			HttpServletRequest request) throws ToDoException {
+	@RequestMapping(value = "/deletelabelfromanote/{noteId}", method = RequestMethod.DELETE)
+	public ResponseEntity<ResponseDTO> deleteLabelFromNote(@PathVariable String noteId, @RequestParam String labelName,
+			HttpServletRequest request, @RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " deleting a label from the note");
-		String token = request.getHeader("Authorization");
-		noteService.deleteLabelFromNote(noteId, labelName, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.deleteLabelFromNote(noteId, labelName, userId);
 		logger.info(RESP_ID + "Label Deleted successfully from the note");
-		return new ResponseEntity(new ResponseDTO("Label deleted successfully ", 200), HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("Label deleted successfully " + noteId, 200), HttpStatus.OK);
 	}
 
 	/**
@@ -316,13 +354,13 @@ public class NoteController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/deletelabel", method = RequestMethod.DELETE)
-	public ResponseEntity<ResponseDTO> deleteLabel(@RequestBody String labelName, HttpServletRequest request)
-			throws ToDoException {
+	public ResponseEntity<ResponseDTO> deleteLabel(@RequestBody String labelName, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " deleting a label");
-		String token = request.getHeader("Authorization");
-		noteService.deleteLabel(labelName, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.deleteLabel(labelName, userId);
 		logger.info(RESP_ID + "Label Deleted successfully ");
-		return new ResponseEntity(new ResponseDTO("Label deleted successfully ", 200), HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("Label deleted successfully " + labelName, 200), HttpStatus.OK);
 	}
 
 	/**
@@ -335,11 +373,12 @@ public class NoteController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/readlabels", method = RequestMethod.GET)
-	public ResponseEntity readLabels(HttpServletRequest request) throws ToDoException {
+	public ResponseEntity readLabels(HttpServletRequest request, @RequestHeader("token") String token)
+			throws ToDoException {
 		logger.info(REQ_ID + " Displaying all labels");
-		String token = request.getHeader("Authorization");
+		String userId = (String) request.getAttribute("userId");
 		List<Label> list = null;
-		list = noteService.displayLabels(token);
+		list = noteService.displayLabels(userId);
 		logger.info(RESP_ID + " All labes are got to display by the controller");
 		return new ResponseEntity(list, HttpStatus.OK);
 	}
@@ -355,12 +394,12 @@ public class NoteController {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/searchnotesbylabelname", method = RequestMethod.GET)
-	public ResponseEntity searchNotesByLabel(@RequestParam String labelName, HttpServletRequest request)
-			throws ToDoException {
+	public ResponseEntity searchNotesByLabel(@RequestParam String labelName, HttpServletRequest request,
+			@RequestHeader("token") String token) throws ToDoException {
 		logger.info(REQ_ID + " Displaying all notes corresponding to that label");
-		String token = request.getHeader("Authorization");
+		String userId = (String) request.getAttribute("userId");
 		List<Note> list = new ArrayList<>();
-		list = noteService.searchNotesByLabel(labelName, token);
+		list = noteService.searchNotesByLabel(labelName, userId);
 		logger.info(RESP_ID + " All notes are got to display by the controller");
 		return new ResponseEntity(list, HttpStatus.OK);
 	}
@@ -377,14 +416,13 @@ public class NoteController {
 	 *             </p>
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/setreminder", method = RequestMethod.POST)
-	public ResponseEntity<ResponseDTO> setReminder(@RequestParam String noteId, @RequestParam String remindTime,
-			HttpServletRequest request) throws ToDoException, ParseException {
+	@RequestMapping(value = "/setreminder/{noteId}", method = RequestMethod.POST)
+	public ResponseEntity<ResponseDTO> setReminder(@PathVariable String noteId, @RequestParam String remindTime,
+			HttpServletRequest request, @RequestHeader("token") String token) throws ToDoException, ParseException {
 		logger.info(REQ_ID + " Setting the Reminder");
-		String token = request.getHeader("Authorization");
-		noteService.setReminder(noteId, remindTime, token);
+		String userId = (String) request.getAttribute("userId");
+		noteService.setReminder(noteId, remindTime, userId);
 		logger.info(RESP_ID + "Label Deleted successfully ");
-		return new ResponseEntity(new ResponseDTO("Reminder set successfully ", 200), HttpStatus.OK);
+		return new ResponseEntity(new ResponseDTO("Reminder set successfully " + noteId, 200), HttpStatus.OK);
 	}
-
 }

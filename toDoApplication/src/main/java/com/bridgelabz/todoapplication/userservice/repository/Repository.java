@@ -31,5 +31,4 @@ public interface Repository extends MongoRepository<User, String> {
 	 *         </p>
 	 */
 	public Optional<User> getByEmail(String email);
-	
 }

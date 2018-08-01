@@ -9,9 +9,14 @@ import org.springframework.stereotype.Component;
 import com.bridgelabz.todoapplication.userservice.model.User;
 
 /**
- * @author 
+ * @author Saurav
  * @since 19/07/2018
- *
+ *        <p>
+ *        This class for redis configuration. We want to get the beand for
+ *        respective JedisConnection factory so as to get the connection with
+ *        the redis repository. And also for getting the bean for respective
+ *        Redis Template
+ *        </p>
  */
 @Configuration
 @Component
@@ -19,7 +24,6 @@ public class RedisConfig {
 	/**
 	 * @return jedisConFactory
 	 */
-	@SuppressWarnings("deprecation")
 	@Bean
 	JedisConnectionFactory jedisConnectionFactory() {
 		JedisConnectionFactory jedisConFactory = new JedisConnectionFactory();
