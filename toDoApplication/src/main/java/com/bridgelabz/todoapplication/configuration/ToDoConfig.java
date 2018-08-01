@@ -9,6 +9,8 @@
 package com.bridgelabz.todoapplication.configuration;
 
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
@@ -30,6 +32,8 @@ import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
 @Configuration
 @Component
 public class ToDoConfig {
+	public static final Logger logger = LoggerFactory.getLogger(ToDoConfig.class);
+
 	/**
 	 * @return encoder
 	 *         <p>
@@ -62,10 +66,11 @@ public class ToDoConfig {
 	public ObjectMapping objectmapping() {
 		return new ObjectMapping();
 	}
-/**
- * 
- * @return
- */
+
+	/**
+	 * 
+	 * @return
+	 */
 	@Bean
 	public static PropertySourcesPlaceholderConfigurer propertyConfigurer() {
 		Resource resource;
@@ -77,21 +82,20 @@ public class ToDoConfig {
 		 * For getting the active profile
 		 */
 		activeProfile = System.getProperty("spring.profiles.active");
-		
+
 		/**
-		 *  choose different property files for different active profile
+		 * choose different property files for different active profile
 		 */
 		if ("development".equals(activeProfile)) {
 			resource = new ClassPathResource("/META_INF/development.properties");
 			System.out.println(activeProfile + " profile selected");
 		}
-		
+
 		else {
 			resource = new ClassPathResource("/META_INF/production.properties");
 			System.out.println(activeProfile + " profile selected");
 		}
 
-		
 		/**
 		 * load the property file
 		 */
