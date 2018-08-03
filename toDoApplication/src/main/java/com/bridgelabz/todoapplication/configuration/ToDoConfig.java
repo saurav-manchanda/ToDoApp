@@ -88,12 +88,12 @@ public class ToDoConfig {
 		 */
 		if ("development".equals(activeProfile)) {
 			resource = new ClassPathResource("/META_INF/development.properties");
-			System.out.println(activeProfile + " profile selected");
+			logger.info(activeProfile + " profile selected");
 		}
 
 		else {
 			resource = new ClassPathResource("/META_INF/production.properties");
-			System.out.println(activeProfile + " profile selected");
+			logger.info(activeProfile + " profile selected");
 		}
 
 		/**

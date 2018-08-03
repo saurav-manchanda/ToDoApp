@@ -168,13 +168,20 @@ public class NoteServiceImpl implements INoteService {
 	public List<Note> displayAllNotes(String userId) throws ToDoException {
 		logger.info(REQ_ID + " Displaying Notes in Service");
 		List<Note> list = new ArrayList<>();
+		List<Note> modifiedList = new ArrayList<>();
 		PreCondition.checkNotEmptyString(userId, messages.get("106"));
-		list = noteElasticRepository.findNotesByUserId(userId);
 		if (!userRepository.findById(userId).isPresent()) {
 			logger.error("Invalid user");
 			PreCondition.commonMethod(messages.get("107"));
 		}
-		return list;
+		list = noteElasticRepository.findNotesByUserId(userId);
+		list.stream().filter(streamNote -> (streamNote.isPinnedStatus() == true && streamNote.isTrashStatus() == false
+				&& streamNote.isArchieveStatus() == false)).forEach(noteFilter -> modifiedList.add(noteFilter));
+		list.stream().filter(streamNote -> (streamNote.isPinnedStatus() == false && streamNote.isTrashStatus() == false
+				&& streamNote.isArchieveStatus() == false)).forEach(noteFilter -> modifiedList.add(noteFilter));
+		// list = noteElasticRepository.findNotesByUserId(userId);
+
+		return modifiedList;
 	}
 
 	/**
@@ -535,5 +542,25 @@ public class NoteServiceImpl implements INoteService {
 		labelRepository.save(label);
 		labelElasticRepository.save(label);
 		return noteId;
+	}
+
+	/**
+	 * This method is for displaying all the notes in trash. The notes whose trash
+	 * status is true will be selected, Have done it by using stream APi
+	 */
+	@Override
+	public List<Note> displayFromTrash(String userId) throws ToDoException {
+		logger.info(REQ_ID + " Displaying Notes in trash in Service");
+		List<Note> list = new ArrayList<>();
+		List<Note> modifiedList = new ArrayList<>();
+		PreCondition.checkNotEmptyString(userId, messages.get("106"));
+		if (!userRepository.findById(userId).isPresent()) {
+			logger.error("Invalid user");
+			PreCondition.commonMethod(messages.get("107"));
+		}
+		list = noteElasticRepository.findNotesByUserId(userId);
+		list.stream().filter(streamNote -> streamNote.isTrashStatus())
+				.forEach(noteFilter -> modifiedList.add(noteFilter));
+		return modifiedList;
 	}
 }

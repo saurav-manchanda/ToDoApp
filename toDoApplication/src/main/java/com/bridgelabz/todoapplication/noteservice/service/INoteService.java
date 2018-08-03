@@ -221,4 +221,6 @@ public interface INoteService {
 	 * @throws ToDoException
 	 */
 	String addLabeltoNote(String noteId, Label label, String userId) throws ToDoException;
+
+	List<Note> displayFromTrash(String userId) throws ToDoException;
 }

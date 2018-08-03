@@ -134,7 +134,7 @@ public class NoteController {
 	 * @throws ToDoException
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/displayAllNotes", method = RequestMethod.GET)
+	@RequestMapping(value = "/displayallnotes", method = RequestMethod.GET)
 	public ResponseEntity displayAllNotes(HttpServletRequest request, @RequestHeader("token") String token)
 			throws ToDoException {
 		logger.info(REQ_ID + " Displaying all notes");
@@ -424,5 +424,26 @@ public class NoteController {
 		noteService.setReminder(noteId, remindTime, userId);
 		logger.info(RESP_ID + "Label Deleted successfully ");
 		return new ResponseEntity(new ResponseDTO("Reminder set successfully " + noteId, 200), HttpStatus.OK);
+	}
+
+	/**
+	 * @param request
+	 * @param token
+	 * @return
+	 * @throws ToDoException
+	 *             <p>
+	 *             This API is for displaying all the Notes which are in trash
+	 *             </p>
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@RequestMapping(value = "/displaynotesfromtrash", method = RequestMethod.GET)
+	public ResponseEntity displayNotesFromTrash(HttpServletRequest request, @RequestHeader("token") String token)
+			throws ToDoException {
+		logger.info(REQ_ID + " Displaying all notes");
+		String userId = (String) request.getAttribute("userId");
+		List<Note> list = new ArrayList<>();
+		list = noteService.displayFromTrash(userId);
+		logger.info(RESP_ID + " All notes are got to display by the controller");
+		return new ResponseEntity(list, HttpStatus.OK);
 	}
 }
