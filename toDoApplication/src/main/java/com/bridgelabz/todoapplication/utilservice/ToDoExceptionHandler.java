@@ -32,4 +32,11 @@ public class ToDoExceptionHandler {
 		response.setStatus(-1);
 		return new ResponseEntity<ResponseDTO>(response, HttpStatus.BAD_REQUEST);
 	}
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<ResponseDTO> exceptionHandler(Exception exception) {
+		ResponseDTO response = new ResponseDTO();
+		response.setMessage("WE ARE GETTING IO EXCEPTION");
+		response.setStatus(-1);
+		return new ResponseEntity<ResponseDTO>(response, HttpStatus.BAD_REQUEST);
+	}
 }

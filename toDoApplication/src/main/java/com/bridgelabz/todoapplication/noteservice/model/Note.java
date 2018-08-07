@@ -19,15 +19,32 @@ import org.springframework.data.elasticsearch.annotations.Document;
  *         corresponding setters and getters
  *         </p>
  */
-@Document(indexName="test",type="note")
+@Document(indexName = "test", type = "note")
 public class Note {
 	@Id
 	private String noteId;
 	private String title;
-	private String description;
+	private Description description;
+//	private String description;
+//	public String getDescription() {
+//		return description;
+//	}
+//
+//	public void setDescription(String description) {
+//		this.description = description;
+//	}
+
 	private String createdDate;
-	private String lastUpdatedDate;  
+	private String lastUpdatedDate;
 	private String userId;
+	public Description getDescription() {
+		return description;
+	}
+
+	public void setDescription(Description description) {
+		this.description = description;
+	}
+
 	private String colour = "white";
 	private String reminder;
 	private boolean trashStatus = false;
@@ -180,22 +197,10 @@ public class Note {
 	}
 
 	/**
-	 * Method to get the description of Note
-	 * 
-	 * @return
-	 */
-	public String getDescription() {
-		return description;
-	}
-
-	/**
 	 * Method to set the description of the Note
 	 * 
 	 * @param description
 	 */
-	public void setDescription(String description) {
-		this.description = description;
-	}
 
 	/**
 	 * Method to get the createdDate of the Note
@@ -205,6 +210,26 @@ public class Note {
 	public String getCreatedDate() {
 		return createdDate;
 	}
+
+//	/**
+//	 * Method to get the description of Note
+//	 * 
+//	 * @return
+//	 */
+//
+//	public Description getDescription() {
+//		return description;
+//	}
+//
+//	/**
+//	 * Method to set the description of the Note
+//	 * 
+//	 * @param description
+//	 */
+//
+//	public void setDescription(Description description) {
+//		this.description = description;
+//	}
 
 	/**
 	 * Method to set the createdDate of the Note
@@ -232,17 +257,21 @@ public class Note {
 	public void setNoteId(String noteId) {
 		this.noteId = noteId;
 	}
-/**
- * Method to get the reminder
- * @return
- */
+
+	/**
+	 * Method to get the reminder
+	 * 
+	 * @return
+	 */
 	public String getReminder() {
 		return reminder;
 	}
-/**
- * Method to set the reminder
- * @param reminder
- */
+
+	/**
+	 * Method to set the reminder
+	 * 
+	 * @param reminder
+	 */
 	public void setReminder(String reminder) {
 		this.reminder = reminder;
 	}

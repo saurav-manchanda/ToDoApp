@@ -7,6 +7,7 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.noteservice.model;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -15,7 +16,8 @@ import java.util.List;
  *DTO class of Note having fields related to a Note and corresponding setters and getters.
  *</p>
  */
-public class NoteDTO {
+public class NoteDTO implements Serializable {
+	private static final long serialVersionUID = 1L;
 	private String title;
 	private String description;
 	private List<Label> labels;

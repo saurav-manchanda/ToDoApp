@@ -6,7 +6,6 @@
  * @since 11/07/2018
  *********************************************************************************/
 package com.bridgelabz.todoapplication.userservice.model;
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 

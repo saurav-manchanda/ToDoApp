@@ -7,6 +7,7 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.noteservice.service;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -21,7 +22,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.bridgelabz.todoapplication.noteservice.model.Description;
 import com.bridgelabz.todoapplication.noteservice.model.Label;
+import com.bridgelabz.todoapplication.noteservice.model.Link;
 import com.bridgelabz.todoapplication.noteservice.model.Note;
 import com.bridgelabz.todoapplication.noteservice.model.NoteDTO;
 import com.bridgelabz.todoapplication.noteservice.repository.ILabelElasticRepository;
@@ -30,6 +33,7 @@ import com.bridgelabz.todoapplication.noteservice.repository.INoteElasticReposit
 import com.bridgelabz.todoapplication.noteservice.repository.INoteRepository;
 import com.bridgelabz.todoapplication.userservice.model.User;
 import com.bridgelabz.todoapplication.userservice.repository.Repository;
+import com.bridgelabz.todoapplication.utilservice.JsoupService;
 import com.bridgelabz.todoapplication.utilservice.ToDoException;
 import com.bridgelabz.todoapplication.utilservice.TokenGenerator;
 import com.bridgelabz.todoapplication.utilservice.ObjectMapper.ObjectMapping;
@@ -75,17 +79,20 @@ public class NoteServiceImpl implements INoteService {
 	/**
 	 * Method to create a note in the application
 	 */
-	public String createNote(NoteDTO noteDto, String userId) throws ToDoException {
+	public String createNote(NoteDTO noteDto, String userId) throws ToDoException, IOException{
 		logger.info(REQ_ID + " Creating Note in Service");
 		PreCondition.checkNotNull(noteDto.getDescription(), messages.get("101"));
 		PreCondition.checkNotNull(noteDto.getTitle(), messages.get("102"));
-		Note note = objectMapping.map(noteDto, Note.class);
+		Note note=new Note();
+		note.setTitle(noteDto.getTitle());
+		note.setLabels(noteDto.getLabels());
 		Optional<User> user = userRepository.findById(userId);
 		note.setUserId(user.get().getId());
 		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
 		String createdDate = simpleDateFormat.format(new Date());
 		note.setCreatedDate(createdDate);
 		note.setLastUpdatedDate(createdDate);
+		note.setDescription(makeDescription(noteDto.getDescription()));
 		noteRepository.save(note);
 		noteElasticRepository.save(note);
 		logger.info(RESP_ID + " Note created in Service");
@@ -131,9 +138,10 @@ public class NoteServiceImpl implements INoteService {
 
 	/**
 	 * Method to update a Note in the database inside the application
+	 * @throws IOException 
 	 */
 	@Override
-	public String updateNote(String noteId, String title, String description, String userId) throws ToDoException {
+	public String updateNote(String noteId, String title, String description, String userId) throws ToDoException, IOException {
 		logger.info(REQ_ID + " Updating Note in Service");
 		PreCondition.checkNotNull(noteId, messages.get("103"));
 		PreCondition.checkNotNull(title, messages.get("102"));
@@ -151,7 +159,7 @@ public class NoteServiceImpl implements INoteService {
 		Note note = noteElasticRepository.getByNoteId(noteId).get();
 		if (!note.isTrashStatus()) {
 			note.setTitle(title);
-			note.setDescription(note.getDescription());
+			note.setDescription(makeDescription(description));
 			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
 			note.setLastUpdatedDate(simpleDateFormat.format(new Date()));
 			noteRepository.save(note);
@@ -179,8 +187,6 @@ public class NoteServiceImpl implements INoteService {
 				&& streamNote.isArchieveStatus() == false)).forEach(noteFilter -> modifiedList.add(noteFilter));
 		list.stream().filter(streamNote -> (streamNote.isPinnedStatus() == false && streamNote.isTrashStatus() == false
 				&& streamNote.isArchieveStatus() == false)).forEach(noteFilter -> modifiedList.add(noteFilter));
-		// list = noteElasticRepository.findNotesByUserId(userId);
-
 		return modifiedList;
 	}
 
@@ -563,4 +569,28 @@ public class NoteServiceImpl implements INoteService {
 				.forEach(noteFilter -> modifiedList.add(noteFilter));
 		return modifiedList;
 	}
+
+	public Description makeDescription(String noteDescription) throws IOException {
+		logger.info(REQ_ID + " in makeDescription method");
+		Description description=new Description();
+		List<Link> linkList = new ArrayList<>();
+		List<String> simpleList = new ArrayList<>();
+		String[] descriptionArray = noteDescription.split(" ");
+		for (int i = 0; i < descriptionArray.length; i++) {
+			if (descriptionArray[i].startsWith("http://") || descriptionArray[i].startsWith("https://")) {
+				Link link = new Link();
+				link.setLinkTitle(JsoupService.getTitle(descriptionArray[i]));
+				link.setLinkDomainName(JsoupService.getDomain(descriptionArray[i]));
+				link.setLinkImage(JsoupService.getImage(descriptionArray[i]));
+				System.out.println(link);
+				linkList.add(link);
+			}
+			simpleList.add(descriptionArray[i]);
+		}
+		description.setSimpleDescription(simpleList);
+		description.setLinkDescription(linkList);
+		logger.info(RESP_ID+"outside makeDescription method");
+		return description;
+	}
+
 }

@@ -68,7 +68,7 @@ public class ToDoConfig {
 	}
 
 	/**
-	 * 
+	 * For getting the bean of property congfigurer
 	 * @return
 	 */
 	@Bean

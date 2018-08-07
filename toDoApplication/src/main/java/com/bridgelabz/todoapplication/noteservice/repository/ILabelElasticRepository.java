@@ -6,7 +6,14 @@ import org.springframework.data.elasticsearch.repository.ElasticsearchRepository
 
 import com.bridgelabz.todoapplication.noteservice.model.Label;
 
-public interface ILabelElasticRepository extends ElasticsearchRepository<Label, String>{
+/**
+ * @author Saurav
+ *         <p>
+ *         Elastic Repository for Label
+ *         </p>
+ *
+ */
+public interface ILabelElasticRepository extends ElasticsearchRepository<Label, String> {
 	/**
 	 * @param userId
 	 * @return List of labels
@@ -15,10 +22,12 @@ public interface ILabelElasticRepository extends ElasticsearchRepository<Label, 
 	 *         </p>
 	 */
 	public List<Label> findLabelsByUserId(String userId);
+
 	/**
 	 * <p>
 	 * This method is for finding the Labels by their respective LabelName
 	 * </p>
+	 * 
 	 * @param labelName
 	 * @return
 	 */

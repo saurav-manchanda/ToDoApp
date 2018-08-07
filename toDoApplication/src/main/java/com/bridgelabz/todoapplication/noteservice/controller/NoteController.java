@@ -7,6 +7,7 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.noteservice.controller;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,11 +62,12 @@ public class NoteController {
 	 *         with the service layer and calling createNote() of service layer
 	 *         </p>
 	 * @throws ToDoException
+	 * @throws IOException
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@RequestMapping(value = "/createnote", method = RequestMethod.POST)
 	public ResponseEntity<ResponseDTO> createNote(@RequestBody NoteDTO noteDto, HttpServletRequest request,
-			@RequestHeader("token") String token) throws ToDoException {
+			@RequestHeader("token") String token) throws ToDoException, IOException {
 		// logger.debug("hello");
 		// logger.warn("hello");
 		logger.info(REQ_ID + "Creating a new note");
@@ -109,15 +111,15 @@ public class NoteController {
 	 *         the service layer and calling updateNote() of service layer
 	 *         </p>
 	 * @throws ToDoException
+	 * @throws IOException
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@RequestMapping(value = "/updatenote", method = RequestMethod.PUT)
+	@RequestMapping(value = "/updatenote/{noteId}", method = RequestMethod.PUT)
 	public ResponseEntity<ResponseDTO> updateNote(@RequestBody NoteDTO noteDto, HttpServletRequest request,
-			@RequestHeader("token") String token) throws ToDoException {
-		Note note = objectMapping.map(noteDto, Note.class);
+			@PathVariable String noteId, @RequestHeader("token") String token) throws ToDoException, IOException {
 		logger.info(REQ_ID + " Updating a note");
 		String userId = (String) request.getAttribute("userId");
-		String noteId = noteService.updateNote(note.getNoteId(), note.getTitle(), note.getDescription(), userId);
+		noteService.updateNote(noteId, noteDto.getTitle(), noteDto.getDescription(), userId);
 		logger.info(RESP_ID + " Note sucessfully updated");
 		return new ResponseEntity("Note sucessfully updated " + noteId, HttpStatus.OK);
 	}

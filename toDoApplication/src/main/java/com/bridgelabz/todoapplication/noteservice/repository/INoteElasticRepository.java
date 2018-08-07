@@ -7,12 +7,19 @@ import org.springframework.data.elasticsearch.repository.ElasticsearchRepository
 
 import com.bridgelabz.todoapplication.noteservice.model.Note;
 
-public interface INoteElasticRepository extends ElasticsearchRepository<Note, String>{
+/**
+ * @author Saurav
+ *         <p>
+ *         Elastic repository for Notes
+ *         </p>
+ *
+ */
+public interface INoteElasticRepository extends ElasticsearchRepository<Note, String> {
 	/**
 	 * @param noteId
 	 * @return Optional<Note>
 	 *         <p>
-	 * 		This method is getting the note of corresponding noteId passed as the
+	 *         This method is getting the note of corresponding noteId passed as the
 	 *         parameter of the method
 	 *         </p>
 	 */

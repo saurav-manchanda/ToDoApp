@@ -7,6 +7,7 @@
  *********************************************************************************/
 package com.bridgelabz.todoapplication.noteservice.service;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 
@@ -31,9 +32,10 @@ public interface INoteService {
 	 * @param note
 	 * @param userID
 	 * @throws ToDoException
+	 * @throws IOException
 	 * 
 	 */
-	String createNote(NoteDTO noteDto, String userId) throws ToDoException;
+	String createNote(NoteDTO noteDto, String userId) throws ToDoException, IOException;
 
 	/**
 	 * <p>
@@ -59,8 +61,9 @@ public interface INoteService {
 	 * @param description
 	 * @param token
 	 * @throws ToDoException
+	 * @throws IOException
 	 */
-	String updateNote(String noteId, String title, String description, String userId) throws ToDoException;
+	String updateNote(String noteId, String title, String description, String userId) throws ToDoException, IOException;
 
 	/**
 	 * <p>
@@ -222,5 +225,12 @@ public interface INoteService {
 	 */
 	String addLabeltoNote(String noteId, Label label, String userId) throws ToDoException;
 
+	/**
+	 * This method is for displaying the list of notes in the trash
+	 * 
+	 * @param userId
+	 * @return
+	 * @throws ToDoException
+	 */
 	List<Note> displayFromTrash(String userId) throws ToDoException;
 }
